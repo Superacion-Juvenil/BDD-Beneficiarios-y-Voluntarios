@@ -7,9 +7,9 @@ Sistema de gestión de participantes (beneficiarios y voluntarios) para Superaci
 | Capa | Tecnología |
 |------|-----------|
 | Frontend | React 19 + React Router v7 (Vite) |
-| Auth | Firebase Authentication |
-| Base de datos | Cloud Firestore |
-| Deploy | Vercel (frontend) + Firebase (backend) |
+| Auth | Supabase Auth |
+| Base de datos | Supabase (Postgres + RLS) |
+| Deploy | Vercel (frontend) + Supabase (backend) |
 | Estilos | CSS-in-JS (sin dependencias extra) |
 
 ---
@@ -24,13 +24,18 @@ cd BDD-Beneficiarios-y-Voluntarios
 npm install
 ```
 
-### 2. Firebase
+### 2. Supabase
 
-1. Ve a [console.firebase.google.com](https://console.firebase.google.com)
-2. Crea un proyecto (p. ej. `sj-plataforma`)
-3. Activa **Authentication → Sign-in method → Email/Password**
-4. Crea la base de datos Firestore en modo producción
-5. Copia las credenciales web del proyecto
+1. Ve a [supabase.com](https://supabase.com) y crea un proyecto.
+2. En **Project Settings → API** copia:
+   - `Project URL` → `VITE_SUPABASE_URL` y `SUPABASE_URL`
+   - `anon public` → `VITE_SUPABASE_ANON_KEY`
+   - `service_role` (secreta) → `SUPABASE_SERVICE_ROLE_KEY` (solo para el script de migración, **nunca** exponer al frontend)
+3. En **Authentication → Providers** habilita **Email** (Email/Password).
+4. Ejecuta el esquema SQL en **SQL Editor**:
+   ```sql
+   -- copia el contenido de supabase/schema.sql y ejecútalo
+   ```
 
 ### 3. Variables de entorno
 
@@ -40,25 +45,25 @@ cp .env.example .env
 ```
 
 ```env
-VITE_FIREBASE_API_KEY=...
-VITE_FIREBASE_AUTH_DOMAIN=...
-VITE_FIREBASE_PROJECT_ID=...
-VITE_FIREBASE_STORAGE_BUCKET=...
-VITE_FIREBASE_MESSAGING_SENDER_ID=...
-VITE_FIREBASE_APP_ID=...
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=...
+
+VITE_ADMIN_EMAIL=ADMIN@sj.internal
+VITE_DEFAULT_PASSWORD=SJ2025
+
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=...        # NUNCA commitear
+DEFAULT_USER_PASSWORD=SJ2025
 ```
 
 ### 4. Crear la cuenta de administrador
 
-En Firebase Console → Authentication → Users → Add user:
+En Supabase Dashboard → **Authentication → Users → Add user**:
 - **Email:** `ADMIN@sj.internal`
-- **Password:** `AdminSJ2025!` (o la que prefieras)
+- **Password:** la que prefieras (p. ej. `AdminSJ2025!`)
+- Marca la opción de auto-confirmar el email.
 
-### 5. Reglas de Firestore
-
-Copia el contenido de `firestore.rules` en Firebase Console → Firestore → Reglas y publica.
-
-### 6. Ejecutar en desarrollo
+### 5. Ejecutar en desarrollo
 
 ```bash
 npm run dev
@@ -82,7 +87,7 @@ npm i -g vercel
 # 2. En la raíz del proyecto
 vercel
 
-# 3. Agrega las variables de entorno en el dashboard de Vercel
+# 3. Agrega las variables de entorno (VITE_*) en el dashboard de Vercel
 ```
 
 El archivo `vercel.json` configura el rewrite SPA y las cabeceras de seguridad.
@@ -94,12 +99,15 @@ El archivo `vercel.json` configura el rewrite SPA y las cabeceras de seguridad.
 ### Prerrequisitos
 
 ```bash
-npm install firebase-admin dotenv
-# Descarga la clave de servicio desde Firebase Console
-# Project Settings → Service Accounts → Generate new private key
+npm install   # ya instala @supabase/supabase-js, xlsx, dotenv
 ```
 
-### Dry run (sin escribir a Firebase)
+Asegúrate de tener en `.env`:
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `DEFAULT_USER_PASSWORD`
+
+### Dry run (sin escribir a Supabase)
 
 ```bash
 npm run migrate:dry -- --file=./data/participantes.xlsx
@@ -108,7 +116,7 @@ npm run migrate:dry -- --file=./data/participantes.xlsx
 ### Migración real
 
 ```bash
-npm run migrate -- --file=./data/participantes.xlsx --sa=./serviceAccount.json
+npm run migrate -- --file=./data/participantes.xlsx
 ```
 
 ### Hojas esperadas en el Excel
@@ -139,12 +147,12 @@ src/
 │   ├── AdminPanel.jsx       — Dashboard admin con stats y tabla
 │   ├── AdminEditUser.jsx    — Editar perfil completo desde admin
 │   ├── AdminAddUser.jsx     — Crear nuevo participante
-│   └── ui/                 — Badge, Alert, Button, Field, Spinner, SectionTitle
+│   └── ui/                  — Badge, Alert, Button, Field, Spinner, SectionTitle
 ├── hooks/
 │   ├── useAuth.jsx          — Contexto de autenticación y sesión
-│   └── useUser.js           — Lectura/escritura de perfiles en Firestore
+│   └── useUser.js           — Lectura/escritura de perfiles en Supabase
 ├── lib/
-│   ├── firebase.js          — Inicialización de Firebase
+│   ├── supabase.js          — Inicialización de Supabase
 │   ├── curp.js              — Parser CURP, calcAge, isMinor, formatFechaNac
 │   └── validators.js        — Validaciones de email, teléfono, CP, CURP
 ├── App.jsx                  — Rutas y guards de autenticación
@@ -153,7 +161,8 @@ index.html                   — HTML root (Vite)
 vite.config.js               — Configuración de Vite
 scripts/
 └── migrate.js               — Importación masiva desde Excel
-firestore.rules              — Reglas de seguridad para producción
+supabase/
+└── schema.sql               — Tabla profiles + RLS + trigger
 vercel.json                  — Configuración de deploy y cabeceras de seguridad
 ```
 
@@ -192,7 +201,8 @@ Fecha de nacimiento y sexo son de solo lectura para el participante. La edad se 
 ## Decisiones de diseño
 
 - **Sin dependencias de UI** (sin MUI, sin Tailwind): control total del diseño con identidad visual SJ.
-- **Admin identificado por email**: `ADMIN@sj.internal` — no requiere campo `role` en Firestore, menor superficie de ataque.
-- **Contraseñas nunca almacenadas**: Firebase Auth gestiona todo el ciclo de vida de credenciales.
+- **Admin identificado por email**: `ADMIN@sj.internal` — no requiere campo `role` en la base, menor superficie de ataque.
+- **Contraseñas nunca almacenadas en `profiles`**: Supabase Auth gestiona todo el ciclo de vida de credenciales.
 - **Edad calculada en tiempo real**: garantiza exactitud permanente sin jobs de actualización.
-- **Rate limiting**: Firebase Auth lo maneja nativamente.
+- **Rate limiting**: Supabase Auth lo maneja nativamente.
+- **RLS (Row Level Security)**: las políticas en `supabase/schema.sql` garantizan que un usuario solo lea/edite su perfil, mientras que el admin (identificado por email) tiene acceso total. Un trigger refuerza que los campos sensibles (CURP, programa, status, etc.) solo puedan cambiarse por admin.

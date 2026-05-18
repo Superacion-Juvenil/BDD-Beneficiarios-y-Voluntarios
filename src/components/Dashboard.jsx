@@ -1,6 +1,4 @@
-import { useState, useEffect } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Navbar } from './Navbar';
 import { ProfileTab } from './ProfileTab';

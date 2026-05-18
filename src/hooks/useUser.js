@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
-import { doc, getDoc, updateDoc, setDoc, collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
+
+function withUid(row) {
+  if (!row) return null;
+  return { uid: row.id, ...row };
+}
 
 export function useUser(uid) {
   const [userData, setUserData] = useState(null);
@@ -9,48 +13,74 @@ export function useUser(uid) {
 
   useEffect(() => {
     if (!uid) { setLoading(false); return; }
-    const ref = doc(db, 'users', uid);
-    getDoc(ref)
-      .then(snap => {
-        if (snap.exists()) setUserData(snap.data());
-        else setError('Perfil no encontrado');
+    let active = true;
+    supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', uid)
+      .maybeSingle()
+      .then(({ data, error: err }) => {
+        if (!active) return;
+        if (err) setError(err.message);
+        else if (!data) setError('Perfil no encontrado');
+        else setUserData(withUid(data));
       })
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false));
+      .catch(e => { if (active) setError(e.message); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [uid]);
 
-  async function saveUser(uid, data) {
-    const ref = doc(db, 'users', uid);
-    await updateDoc(ref, { ...data, updatedAt: new Date().toISOString() });
-    setUserData(prev => ({ ...prev, ...data }));
+  async function saveUser(targetUid, data) {
+    const patch = { ...data, updatedAt: new Date().toISOString() };
+    const { error: err } = await supabase
+      .from('profiles')
+      .update(patch)
+      .eq('id', targetUid);
+    if (err) throw err;
+    setUserData(prev => ({ ...prev, ...patch }));
   }
 
   return { userData, setUserData, loading, error, saveUser };
 }
 
 export async function getAllUsers() {
-  const q = query(collection(db, 'users'), orderBy('apellidoPaterno'));
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('apellidoPaterno', { ascending: true });
+  if (error) throw error;
+  return (data || []).map(withUid);
 }
 
 export async function getUserByUid(uid) {
-  const ref = doc(db, 'users', uid);
-  const snap = await getDoc(ref);
-  return snap.exists() ? { uid: snap.id, ...snap.data() } : null;
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', uid)
+    .maybeSingle();
+  if (error) throw error;
+  return withUid(data);
 }
 
 export async function updateUserData(uid, data) {
-  const ref = doc(db, 'users', uid);
-  await updateDoc(ref, { ...data, updatedAt: new Date().toISOString() });
+  const patch = { ...data, updatedAt: new Date().toISOString() };
+  const { error } = await supabase
+    .from('profiles')
+    .update(patch)
+    .eq('id', uid);
+  if (error) throw error;
 }
 
 export async function createUserDocument(uid, data) {
-  const ref = doc(db, 'users', uid);
-  await setDoc(ref, {
-    ...data,
-    mustChangePassword: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  });
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from('profiles')
+    .insert({
+      id: uid,
+      ...data,
+      mustChangePassword: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+  if (error) throw error;
 }

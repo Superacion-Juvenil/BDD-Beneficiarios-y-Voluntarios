@@ -40,9 +40,10 @@ export function Login() {
     try {
       await loginWithCURP(curp, password);
     } catch (err) {
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+      const msg = (err?.message || '').toLowerCase();
+      if (msg.includes('invalid login credentials') || msg.includes('invalid credentials') || msg.includes('email not confirmed')) {
         setError('CURP o contraseña incorrectos.');
-      } else if (err.code === 'auth/too-many-requests') {
+      } else if (msg.includes('too many requests') || msg.includes('rate limit')) {
         setError('Demasiados intentos. Espera unos minutos e intenta de nuevo.');
       } else {
         setError('Error al iniciar sesión. Verifica tu conexión.');
