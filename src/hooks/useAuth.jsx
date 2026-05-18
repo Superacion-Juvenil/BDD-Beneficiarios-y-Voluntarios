@@ -22,7 +22,7 @@ export function AuthProvider({ children }) {
       if (firebaseUser) {
         setUser(firebaseUser);
         // Admin is identified by the special email prefix
-        const adminEmail = (process.env.REACT_APP_ADMIN_EMAIL || 'ADMIN@sj.internal').toLowerCase();
+        const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || 'ADMIN@sj.internal').toLowerCase();
         if (firebaseUser.email.toLowerCase() === adminEmail) {
           setIsAdmin(true);
           setUserData({ nombre: 'Administrador', isAdmin: true });

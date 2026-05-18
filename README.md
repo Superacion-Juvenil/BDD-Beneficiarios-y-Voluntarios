@@ -6,7 +6,7 @@ Sistema de gestión de participantes (beneficiarios y voluntarios) para Superaci
 
 | Capa | Tecnología |
 |------|-----------|
-| Frontend | React 19 + React Router v7 |
+| Frontend | React 19 + React Router v7 (Vite) |
 | Auth | Firebase Authentication |
 | Base de datos | Cloud Firestore |
 | Deploy | Vercel (frontend) + Firebase (backend) |
@@ -40,12 +40,12 @@ cp .env.example .env
 ```
 
 ```env
-REACT_APP_FIREBASE_API_KEY=...
-REACT_APP_FIREBASE_AUTH_DOMAIN=...
-REACT_APP_FIREBASE_PROJECT_ID=...
-REACT_APP_FIREBASE_STORAGE_BUCKET=...
-REACT_APP_FIREBASE_MESSAGING_SENDER_ID=...
-REACT_APP_FIREBASE_APP_ID=...
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
 ```
 
 ### 4. Crear la cuenta de administrador
@@ -61,7 +61,14 @@ Copia el contenido de `firestore.rules` en Firebase Console → Firestore → Re
 ### 6. Ejecutar en desarrollo
 
 ```bash
-npm start
+npm run dev
+```
+
+El servidor de Vite arranca en `http://localhost:3000`. Para previsualizar el build de producción:
+
+```bash
+npm run build
+npm run preview
 ```
 
 ---
@@ -134,13 +141,16 @@ src/
 │   ├── AdminAddUser.jsx     — Crear nuevo participante
 │   └── ui/                 — Badge, Alert, Button, Field, Spinner, SectionTitle
 ├── hooks/
-│   ├── useAuth.js           — Contexto de autenticación y sesión
+│   ├── useAuth.jsx          — Contexto de autenticación y sesión
 │   └── useUser.js           — Lectura/escritura de perfiles en Firestore
 ├── lib/
 │   ├── firebase.js          — Inicialización de Firebase
 │   ├── curp.js              — Parser CURP, calcAge, isMinor, formatFechaNac
 │   └── validators.js        — Validaciones de email, teléfono, CP, CURP
-└── App.jsx                  — Rutas y guards de autenticación
+├── App.jsx                  — Rutas y guards de autenticación
+└── main.jsx                 — Entry point (bootstrap React)
+index.html                   — HTML root (Vite)
+vite.config.js               — Configuración de Vite
 scripts/
 └── migrate.js               — Importación masiva desde Excel
 firestore.rules              — Reglas de seguridad para producción

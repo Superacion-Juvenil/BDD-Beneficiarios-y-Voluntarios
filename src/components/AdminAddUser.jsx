@@ -15,7 +15,7 @@ import { Badge } from './ui/Badge';
 const PROGRAMAS = ['MJ Sec/Prepa', 'MCU', 'SU', 'Essencia', 'Escudería Real'];
 const DISTRITOS = ['Norte', 'Sur', 'Poniente', 'Oriente'];
 const STATUSES = ['Activo', 'Inactivo', 'Pre-alianza', 'En camino', 'Inicial', 'Alianza'];
-const DEFAULT_PASSWORD = process.env.REACT_APP_DEFAULT_PASSWORD || 'SJ2025';
+const DEFAULT_PASSWORD = import.meta.env.VITE_DEFAULT_PASSWORD || 'SJ2025';
 
 const emptyForm = {
   curp: '', nombre: '', apellidoPaterno: '', apellidoMaterno: '',

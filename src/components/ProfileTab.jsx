@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { parseCURP, calcAge, isMinor, formatFechaNac } from '../lib/curp';
 import { validateEmail, validatePhone, validateCP } from '../lib/validators';
-import { Field, Input, SectionTitleComp } from './ui/Field';
+import { Field, Input } from './ui/Field';
 import { SectionTitle } from './ui/SectionTitle';
 import { Badge } from './ui/Badge';
 import { Alert } from './ui/Alert';
