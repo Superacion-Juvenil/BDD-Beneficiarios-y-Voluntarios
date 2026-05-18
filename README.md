@@ -6,7 +6,7 @@ Sistema de gestión de participantes (beneficiarios y voluntarios) para Superaci
 
 | Capa | Tecnología |
 |------|-----------|
-| Frontend | React 18 + React Router v7 |
+| Frontend | React 19 + React Router v7 |
 | Auth | Firebase Authentication |
 | Base de datos | Cloud Firestore |
 | Deploy | Vercel (frontend) + Firebase (backend) |
@@ -20,7 +20,7 @@ Sistema de gestión de participantes (beneficiarios y voluntarios) para Superaci
 
 ```bash
 git clone <repo>
-cd sj-plataforma
+cd BDD-Beneficiarios-y-Voluntarios
 npm install
 ```
 
