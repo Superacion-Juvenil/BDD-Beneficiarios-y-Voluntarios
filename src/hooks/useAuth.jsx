@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext(null);
 
-const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL || 'ADMIN@sj.internal').toLowerCase();
+const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL || 'documentacion@superacionjuvenil.org').toLowerCase();
 
 async function loadProfile(supabaseUser) {
   const { data, error } = await supabase

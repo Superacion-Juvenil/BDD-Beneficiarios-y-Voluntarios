@@ -51,7 +51,7 @@ supabase/schema.sql        # tabla profiles + RLS + trigger
 
 - **Variables de entorno:** prefijo `VITE_` para todo lo que se use en el frontend (se exponen al cliente). Se acceden vía `import.meta.env.VITE_*`. Las del script de migración (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) van sin prefijo en `.env`.
 - Componentes y archivos con JSX en `.jsx`; lógica pura sin JSX en `.js`.
-- Admin se identifica por email `ADMIN@sj.internal` — no hay campo `role` en la base.
+- Admin se identifica por email `documentacion@superacionjuvenil.org` — no hay campo `role` en la base.
 - La edad **nunca** se almacena, se calcula del CURP en cada render.
 - Contraseñas nunca se guardan en `profiles` — solo Supabase Auth.
 - Columnas en la tabla `profiles` van en camelCase entre comillas (`"apellidoPaterno"`, `"docTerminos"`, etc.) para que el código JS no necesite mapeo.
