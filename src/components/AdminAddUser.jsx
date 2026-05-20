@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { createSignupClient } from '../lib/supabase';
 import { createUserDocument } from '../hooks/useUser';
 import { parseCURP, validateCURP, calcAge, isMinor, formatFechaNac } from '../lib/curp';
 import { validateEmail, validatePhone, validateCP } from '../lib/validators';
@@ -86,15 +85,23 @@ export function AdminAddUser() {
     setSaving(true);
     try {
       const email = `${form.curp}@sj.internal`;
-      const cred = await createUserWithEmailAndPassword(auth, email, DEFAULT_PASSWORD);
-      await createUserDocument(cred.user.uid, { ...form });
-      setCreated({ uid: cred.user.uid, curp: form.curp, password: DEFAULT_PASSWORD });
+      const signupClient = createSignupClient();
+      const { data, error: signUpErr } = await signupClient.auth.signUp({
+        email,
+        password: DEFAULT_PASSWORD,
+      });
+      if (signUpErr) throw signUpErr;
+      const newUid = data?.user?.id;
+      if (!newUid) throw new Error('No se recibió el id del nuevo usuario.');
+      await createUserDocument(newUid, { ...form });
+      setCreated({ uid: newUid, curp: form.curp, password: DEFAULT_PASSWORD });
       setForm(emptyForm);
     } catch (err) {
-      if (err.code === 'auth/email-already-in-use') {
+      const msg = (err?.message || '').toLowerCase();
+      if (msg.includes('already registered') || msg.includes('already been registered') || msg.includes('duplicate') || msg.includes('user already')) {
         setGeneralError(`El CURP ${form.curp} ya tiene una cuenta registrada.`);
       } else {
-        setGeneralError('Error al crear usuario: ' + err.message);
+        setGeneralError('Error al crear usuario: ' + (err?.message || 'desconocido'));
       }
     } finally {
       setSaving(false);

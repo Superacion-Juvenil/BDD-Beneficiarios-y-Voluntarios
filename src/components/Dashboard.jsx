@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../lib/supabase';
 import { Navbar } from './Navbar';
 import { ProfileTab } from './ProfileTab';
 import { ProgramaTab } from './ProgramaTab';
@@ -22,9 +21,19 @@ export function Dashboard() {
   const { user } = useAuth();
   const { userData, loading, error, saveUser } = useUser(user?.uid);
   const [activeTab, setActiveTab] = useState('personal');
+  const [emailUpdateMsg, setEmailUpdateMsg] = useState('');
 
   async function handleSave(patch) {
     await saveUser(user.uid, patch);
+    // Si el usuario agregó/cambió su correo, sincronizarlo con Supabase Auth
+    // para habilitar el inicio de sesión con código OTP en el futuro.
+    if (patch.correo && patch.correo !== user.email) {
+      const { error: authErr } = await supabase.auth.updateUser({ email: patch.correo });
+      if (!authErr) {
+        setEmailUpdateMsg(`Te enviamos un correo a ${patch.correo} para confirmar tu dirección. Una vez confirmado podrás iniciar sesión con código.`);
+        setTimeout(() => setEmailUpdateMsg(''), 10000);
+      }
+    }
   }
 
   if (loading) return (
@@ -49,6 +58,12 @@ export function Dashboard() {
     <div style={{ minHeight: '100vh', background: '#F9FAFB' }}>
       <Navbar />
       <div style={{ maxWidth: '860px', margin: '0 auto', padding: '24px 16px' }}>
+        {emailUpdateMsg && (
+          <div style={{ marginBottom: '16px' }}>
+            <Alert type="info" onDismiss={() => setEmailUpdateMsg('')}>{emailUpdateMsg}</Alert>
+          </div>
+        )}
+
         {/* Header card */}
         <div style={{
           background: 'white', borderRadius: '12px', padding: '20px 24px',

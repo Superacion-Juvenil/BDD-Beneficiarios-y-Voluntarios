@@ -1,17 +1,20 @@
 /**
- * Migration script — imports Excel data into Firebase Auth + Firestore.
+ * Migration script — imports Excel data into Supabase Auth + profiles.
  *
  * Usage:
  *   node scripts/migrate.js --file=./data/participantes.xlsx [--dry-run]
  *
- * Requires:
- *   npm install xlsx firebase-admin dotenv
- *   A Firebase service account JSON at GOOGLE_APPLICATION_CREDENTIALS or
- *   specified with --sa=./serviceAccount.json
+ * Requires (.env):
+ *   SUPABASE_URL=...
+ *   SUPABASE_SERVICE_ROLE_KEY=...   (NUNCA exponer en frontend)
+ *   DEFAULT_USER_PASSWORD=SJ2025
+ *
+ * Dependencias:
+ *   npm install xlsx @supabase/supabase-js dotenv
  *
  * Expected Excel sheets:  SU | MCU | MJ | STAFF SJ
- * Deduplication: if a CURP appears in multiple sheets, the row with the
- * latest "Marca temporal" (or last seen) is kept.
+ * Deduplication: si un CURP aparece en varias hojas, se conserva el más
+ * reciente por "Marca temporal".
  */
 
 'use strict';
@@ -21,7 +24,8 @@ const fs = require('fs');
 const XLSX = require('xlsx');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-// Parse CLI args
+const { createClient } = require('@supabase/supabase-js');
+
 const args = Object.fromEntries(
   process.argv.slice(2).map(a => {
     const [k, v] = a.replace('--', '').split('=');
@@ -31,19 +35,15 @@ const args = Object.fromEntries(
 
 const EXCEL_FILE = args.file || './data/participantes.xlsx';
 const DRY_RUN = args['dry-run'] === true || args['dry-run'] === 'true';
-const SA_PATH = args.sa;
 const DEFAULT_PASSWORD = process.env.DEFAULT_USER_PASSWORD || 'SJ2025';
 
-// Sheet → programa mapping
 const SHEET_PROGRAMA = {
   'SU': 'SU',
   'MCU': 'MCU',
   'MJ': 'MJ Sec/Prepa',
-  'STAFF SJ': null, // voluntarios — programa set from data
+  'STAFF SJ': null,
 };
 
-// ────────────────────────────────────────────────
-// CURP helpers
 // ────────────────────────────────────────────────
 function parseCURP(curp) {
   if (!curp || curp.length !== 18) return null;
@@ -65,9 +65,6 @@ function normalizeStr(v) {
   return String(v).trim();
 }
 
-// ────────────────────────────────────────────────
-// Column name normalizer — handles variations
-// ────────────────────────────────────────────────
 function findCol(row, candidates) {
   const keys = Object.keys(row).map(k => k.trim().toLowerCase());
   for (const c of candidates) {
@@ -82,9 +79,6 @@ function extractField(row, candidates) {
   return col ? normalizeStr(row[col]) : '';
 }
 
-// ────────────────────────────────────────────────
-// Row → unified schema
-// ────────────────────────────────────────────────
 function rowToUser(row, sheetName) {
   const curp = extractField(row, ['curp']).toUpperCase();
   if (!curp || curp.length !== 18) return null;
@@ -108,11 +102,9 @@ function rowToUser(row, sheetName) {
     colonia: extractField(row, ['colonia']),
     cp: extractField(row, ['cp', 'código postal', 'codigo postal']),
     municipio: extractField(row, ['municipio', 'ciudad']),
-    // tutor
     tutorNombre: extractField(row, ['tutor', 'padre', 'nombre tutor']),
     tutorTelefono: extractField(row, ['telefono tutor', 'cel tutor']),
     tutorCorreo: extractField(row, ['correo tutor', 'email tutor']),
-    // program
     tipoParticipante,
     programa,
     distrito: extractField(row, ['distrito']),
@@ -126,7 +118,6 @@ function rowToUser(row, sheetName) {
     servicio: extractField(row, ['servicio']),
     voluntariadoExterno: extractField(row, ['voluntariado']),
     notas: extractField(row, ['notas', 'comentarios', 'observaciones']),
-    // docs
     docTerminos: false,
     docCartaResponsiva: false,
     docCapacitacionPASI: false,
@@ -140,7 +131,21 @@ function rowToUser(row, sheetName) {
 }
 
 // ────────────────────────────────────────────────
-// Main
+async function findUserByEmail(supabase, email) {
+  // Recorre páginas de listUsers hasta encontrar el email.
+  const PAGE_SIZE = 200;
+  let page = 1;
+  while (true) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: PAGE_SIZE });
+    if (error) throw error;
+    const users = data?.users || [];
+    const hit = users.find(u => (u.email || '').toLowerCase() === email.toLowerCase());
+    if (hit) return hit;
+    if (users.length < PAGE_SIZE) return null;
+    page++;
+  }
+}
+
 // ────────────────────────────────────────────────
 async function main() {
   console.log(`\n🚀 Migración SJ — ${DRY_RUN ? 'DRY RUN' : 'PRODUCCIÓN'}`);
@@ -151,9 +156,8 @@ async function main() {
     process.exit(1);
   }
 
-  // ── Parse Excel ──────────────────────────────
   const workbook = XLSX.readFile(EXCEL_FILE);
-  const allUsers = new Map(); // CURP → user object
+  const allUsers = new Map();
   let totalRows = 0;
   let duplicates = 0;
 
@@ -172,7 +176,6 @@ async function main() {
       if (allUsers.has(user.curp)) {
         duplicates++;
         const existing = allUsers.get(user.curp);
-        // Keep most recent by marcaTemporal
         if (user.marcaTemporal > existing.marcaTemporal) {
           console.log(`  🔄 Duplicado CURP ${user.curp} — se conserva el más reciente (${sheetName})`);
           allUsers.set(user.curp, user);
@@ -192,69 +195,59 @@ async function main() {
   console.log(`  Registros únicos       : ${users.length}`);
 
   if (DRY_RUN) {
-    console.log('\n✅ Dry run completado — ningún dato fue enviado a Firebase.\n');
+    console.log('\n✅ Dry run completado — ningún dato fue enviado a Supabase.\n');
     console.log('Muestra de los primeros 3 registros:');
     users.slice(0, 3).forEach(u => console.log(JSON.stringify(u, null, 2)));
     return;
   }
 
-  // ── Firebase Admin SDK ───────────────────────
-  let admin;
-  try {
-    admin = require('firebase-admin');
-  } catch {
-    console.error('❌ firebase-admin no está instalado. Ejecuta: npm install firebase-admin');
+  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!SUPABASE_URL || !SERVICE_ROLE) {
+    console.error('❌ Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en .env');
     process.exit(1);
   }
 
-  let credential;
-  if (SA_PATH) {
-    const sa = JSON.parse(fs.readFileSync(SA_PATH, 'utf8'));
-    credential = admin.credential.cert(sa);
-  } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    credential = admin.credential.applicationDefault();
-  } else {
-    console.error('❌ No se encontró credencial de Firebase Admin. Usa --sa=./serviceAccount.json o GOOGLE_APPLICATION_CREDENTIALS');
-    process.exit(1);
-  }
-
-  admin.initializeApp({ credential, projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID });
-  const auth = admin.auth();
-  const db = admin.firestore();
+  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 
   let created = 0;
   let updated = 0;
   let errors = 0;
 
   for (const user of users) {
-    const email = `${user.curp}@sj.internal`;
-    const { marcaTemporal, sheetName, ...firestoreData } = user;
+    const email = `${user.curp}@sj.internal`.toLowerCase();
+    const { marcaTemporal: _mt, sheetName: _sn, ...profileData } = user;
 
     try {
       let uid;
-      try {
-        // Try to get existing user
-        const existing = await auth.getUserByEmail(email);
-        uid = existing.uid;
+      const existing = await findUserByEmail(supabase, email);
+      if (existing) {
+        uid = existing.id;
         updated++;
         console.log(`  🔄 Actualizado: ${user.curp}`);
-      } catch (e) {
-        if (e.code === 'auth/user-not-found') {
-          // Create new user
-          const newUser = await auth.createUser({ email, password: DEFAULT_PASSWORD, displayName: `${user.nombre} ${user.apellidoPaterno}`.trim() });
-          uid = newUser.uid;
-          created++;
-          console.log(`  ✅ Creado: ${user.curp} → uid: ${uid}`);
-        } else {
-          throw e;
-        }
+      } else {
+        const { data, error } = await supabase.auth.admin.createUser({
+          email,
+          password: DEFAULT_PASSWORD,
+          email_confirm: true,
+          user_metadata: { curp: user.curp },
+        });
+        if (error) throw error;
+        uid = data.user.id;
+        created++;
+        console.log(`  ✅ Creado: ${user.curp} → uid: ${uid}`);
       }
 
-      // Write Firestore document
-      await db.collection('users').doc(uid).set({
-        ...firestoreData,
-        updatedAt: new Date().toISOString(),
-      }, { merge: true });
+      const { error: upsertErr } = await supabase
+        .from('profiles')
+        .upsert({
+          id: uid,
+          ...profileData,
+          updatedAt: new Date().toISOString(),
+        }, { onConflict: 'id' });
+      if (upsertErr) throw upsertErr;
 
     } catch (err) {
       errors++;
