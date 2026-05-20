@@ -135,3 +135,22 @@ drop trigger if exists trg_enforce_profile_safe_update on public.profiles;
 create trigger trg_enforce_profile_safe_update
 before update on public.profiles
 for each row execute function public.enforce_profile_safe_update();
+
+-- RPC: email real de un CURP para el flujo OTP del login ---------------
+-- Retorna NULL si el usuario no tiene correo real (solo @sj.internal).
+create or replace function public.get_login_email_for_curp(p_curp text)
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select u.email
+  from public.profiles p
+  join auth.users u on u.id = p.id
+  where upper(p."curp") = upper(p_curp)
+    and u.email not like '%@sj.internal'
+  limit 1;
+$$;
+
+grant execute on function public.get_login_email_for_curp(text) to anon;

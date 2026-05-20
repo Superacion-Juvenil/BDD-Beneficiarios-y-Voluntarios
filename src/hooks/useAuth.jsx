@@ -85,6 +85,37 @@ export function AuthProvider({ children }) {
     if (error) throw error;
   }
 
+  // Admin: envía magic link al correo del admin
+  async function loginAdminWithMagicLink(email) {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: false },
+    });
+    if (error) throw error;
+  }
+
+  // Participante: busca el email real del CURP y envía OTP; retorna el email para la pantalla de verificación
+  async function requestCURPOTP(curp) {
+    const { data, error } = await supabase.rpc('get_login_email_for_curp', { p_curp: curp.toUpperCase() });
+    if (error) throw error;
+    if (!data) {
+      const err = new Error('NO_EMAIL');
+      throw err;
+    }
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email: data,
+      options: { shouldCreateUser: false },
+    });
+    if (otpError) throw otpError;
+    return data;
+  }
+
+  // Verifica el código OTP de 6 dígitos enviado por correo
+  async function verifyOTP(email, token) {
+    const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+    if (error) throw error;
+  }
+
   async function logout() {
     await supabase.auth.signOut();
   }
@@ -104,7 +135,11 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, userData, isAdmin, mustChangePassword, loading, loginWithCURP, logout, changePassword }}>
+    <AuthContext.Provider value={{
+      user, userData, isAdmin, mustChangePassword, loading,
+      loginWithCURP, loginAdminWithMagicLink, requestCURPOTP, verifyOTP,
+      logout, changePassword,
+    }}>
       {children}
     </AuthContext.Provider>
   );
