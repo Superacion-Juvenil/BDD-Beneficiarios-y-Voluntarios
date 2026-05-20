@@ -89,7 +89,7 @@ export function AuthProvider({ children }) {
   async function loginAdminWithMagicLink(email) {
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: false },
+      options: { shouldCreateUser: false, emailRedirectTo: window.location.origin },
     });
     if (error) throw error;
   }
@@ -104,7 +104,7 @@ export function AuthProvider({ children }) {
     }
     const { error: otpError } = await supabase.auth.signInWithOtp({
       email: data,
-      options: { shouldCreateUser: false },
+      options: { shouldCreateUser: false, emailRedirectTo: window.location.origin },
     });
     if (otpError) throw otpError;
     return data;
