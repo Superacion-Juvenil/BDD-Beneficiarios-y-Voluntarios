@@ -5,16 +5,12 @@ import { Navbar } from './Navbar';
 import { ProfileTab } from './ProfileTab';
 import { ProgramaTab } from './ProgramaTab';
 import { DocumentosTab } from './DocumentosTab';
+import { UserEventsList } from './UserEventsList';
 import { Spinner } from './ui/Spinner';
 import { Alert } from './ui/Alert';
 import { Button } from './ui/Button';
 
 const BRAND_COLOR = '#1A56A4';
-const TABS = [
-  { id: 'personal', label: 'Datos personales' },
-  { id: 'programa', label: 'Programa' },
-  { id: 'documentos', label: 'Documentos' },
-];
 
 export function AdminEditUser() {
   const { uid } = useParams();
@@ -23,6 +19,14 @@ export function AdminEditUser() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('personal');
+
+  const eventCount = userData ? (userData.eventos || []).length : 0;
+  const TABS = [
+    { id: 'personal', label: 'Datos personales' },
+    { id: 'programa', label: 'Programa' },
+    { id: 'documentos', label: 'Documentos' },
+    { id: 'eventos', label: `Eventos (${eventCount})` },
+  ];
 
   useEffect(() => {
     getUserByUid(uid)
@@ -37,6 +41,18 @@ export function AdminEditUser() {
   async function handleSave(patch) {
     await updateUserData(uid, patch);
     setUserData(prev => ({ ...prev, ...patch }));
+  }
+
+  async function handleEventUpdate(evId, newComment) {
+    const newEventos = (userData.eventos || []).map(ev => ev.id === evId ? { ...ev, comentarios: newComment } : ev);
+    await updateUserData(uid, { eventos: newEventos });
+    setUserData(prev => ({ ...prev, eventos: newEventos }));
+  }
+
+  async function handleEventDelete(evId) {
+    const newEventos = (userData.eventos || []).filter(ev => ev.id !== evId);
+    await updateUserData(uid, { eventos: newEventos });
+    setUserData(prev => ({ ...prev, eventos: newEventos }));
   }
 
   return (
@@ -88,6 +104,13 @@ export function AdminEditUser() {
               )}
               {activeTab === 'documentos' && (
                 <DocumentosTab data={userData} onSave={handleSave} />
+              )}
+              {activeTab === 'eventos' && (
+                <UserEventsList
+                  userData={userData}
+                  onUpdate={handleEventUpdate}
+                  onDelete={handleEventDelete}
+                />
               )}
             </div>
           </div>

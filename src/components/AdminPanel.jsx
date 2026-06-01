@@ -43,7 +43,8 @@ export function AdminPanel() {
     const voluntarios = users.filter(u => u.tipoParticipante === 'Voluntario').length;
     const menores = users.filter(u => isMinor(u.fechaNacimiento)).length;
     const docsPendientes = users.filter(u => !u.docTerminos || !u.docCartaResponsiva || !u.docCapacitacionPASI).length;
-    return { total, beneficiarios, voluntarios, menores, docsPendientes };
+    const eventos = users.reduce((sum, u) => sum + (u.eventos || []).length, 0);
+    return { total, beneficiarios, voluntarios, menores, docsPendientes, eventos };
   }, [users]);
 
   const filtered = useMemo(() => {
@@ -69,6 +70,7 @@ export function AdminPanel() {
           <h1 style={{ margin: 0, fontSize: '1.4rem', color: '#111827' }}>Panel de Administración</h1>
           <div style={{ display: 'flex', gap: '8px' }}>
             <Button variant="ghost" onClick={() => navigate('/dashboard')}>Ver mi perfil</Button>
+            <Button variant="secondary" onClick={() => navigate('/admin/eventos')}>🎯 Eventos</Button>
             <Button onClick={() => navigate('/admin/nuevo')}>+ Nuevo participante</Button>
           </div>
         </div>
@@ -84,6 +86,7 @@ export function AdminPanel() {
               <StatCard label="Voluntarios" value={stats.voluntarios} color="#7C3AED" />
               <StatCard label="Menores de edad" value={stats.menores} color="#D97706" />
               <StatCard label="Docs pendientes" value={stats.docsPendientes} color="#DC2626" />
+              <StatCard label="Eventos" value={stats.eventos} color="#7c3aed" />
             </div>
 
             {/* Search */}

@@ -6,6 +6,7 @@ import { Dashboard } from './components/Dashboard';
 import { AdminPanel } from './components/AdminPanel';
 import { AdminEditUser } from './components/AdminEditUser';
 import { AdminAddUser } from './components/AdminAddUser';
+import { AdminEventosSection } from './components/AdminEventosSection';
 import { Spinner } from './components/ui/Spinner';
 
 function ProtectedRoute({ children, adminOnly = false }) {
@@ -42,6 +43,9 @@ function AppRoutes() {
       } />
       <Route path="/admin/nuevo" element={
         <ProtectedRoute adminOnly><AdminAddUser /></ProtectedRoute>
+      } />
+      <Route path="/admin/eventos" element={
+        <ProtectedRoute adminOnly><AdminEventosSection /></ProtectedRoute>
       } />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
