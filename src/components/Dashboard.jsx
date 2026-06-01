@@ -5,13 +5,16 @@ import { Navbar } from './Navbar';
 import { ProfileTab } from './ProfileTab';
 import { ProgramaTab } from './ProgramaTab';
 import { DocumentosTab } from './DocumentosTab';
+import { EvaluacionesList } from './EvaluacionesList';
+import { EvalForm } from './EvalForm';
 import { Spinner } from './ui/Spinner';
 import { Alert } from './ui/Alert';
 import { useUser } from '../hooks/useUser';
+import { evaluacionesParaUsuario } from '../evaluaciones';
 
 const BRAND_COLOR = '#1A56A4';
 
-const TABS = [
+const BASE_TABS = [
   { id: 'personal', label: 'Datos personales' },
   { id: 'programa', label: 'Programa' },
   { id: 'documentos', label: 'Documentos' },
@@ -19,8 +22,9 @@ const TABS = [
 
 export function Dashboard() {
   const { user } = useAuth();
-  const { userData, loading, error, saveUser } = useUser(user?.uid);
+  const { userData, loading, error, saveUser, saveEvaluacion } = useUser(user?.uid);
   const [activeTab, setActiveTab] = useState('personal');
+  const [openEvalId, setOpenEvalId] = useState(null);
   const [emailUpdateMsg, setEmailUpdateMsg] = useState('');
 
   async function handleSave(patch) {
@@ -53,6 +57,15 @@ export function Dashboard() {
   );
 
   const data = userData || {};
+
+  const pendingCount = userData
+    ? evaluacionesParaUsuario(userData).filter(e => !(userData.evaluaciones || {})[e.id]?.completedAt).length
+    : 0;
+
+  const TABS = [
+    ...BASE_TABS,
+    { id: 'evaluaciones', label: `Evaluaciones${pendingCount > 0 ? ` (${pendingCount})` : ''}`, badge: pendingCount },
+  ];
 
   return (
     <div style={{ minHeight: '100vh', background: '#F9FAFB' }}>
@@ -96,7 +109,7 @@ export function Dashboard() {
             {TABS.map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => { setActiveTab(tab.id); setOpenEvalId(null); }}
                 style={{
                   padding: '14px 20px', border: 'none', cursor: 'pointer',
                   fontWeight: activeTab === tab.id ? 700 : 500,
@@ -105,9 +118,16 @@ export function Dashboard() {
                   background: 'transparent',
                   borderBottom: activeTab === tab.id ? `3px solid ${BRAND_COLOR}` : '3px solid transparent',
                   transition: 'all 0.15s',
+                  display: 'flex', alignItems: 'center', gap: '6px',
                 }}
               >
-                {tab.label}
+                {tab.id === 'evaluaciones' ? 'Evaluaciones' : tab.label}
+                {tab.badge > 0 && (
+                  <span style={{
+                    background: '#DC2626', color: 'white', borderRadius: '999px',
+                    fontSize: '0.68rem', fontWeight: 700, padding: '1px 6px', lineHeight: 1.4,
+                  }}>{tab.badge}</span>
+                )}
               </button>
             ))}
           </div>
@@ -115,6 +135,18 @@ export function Dashboard() {
             {activeTab === 'personal' && <ProfileTab data={data} onSave={handleSave} />}
             {activeTab === 'programa' && <ProgramaTab data={data} onSave={handleSave} />}
             {activeTab === 'documentos' && <DocumentosTab data={data} onSave={handleSave} />}
+            {activeTab === 'evaluaciones' && (
+              openEvalId ? (
+                <EvalForm
+                  evalId={openEvalId}
+                  userData={data}
+                  onSave={(evalId, answers) => saveEvaluacion(user.uid, evalId, answers)}
+                  onBack={() => setOpenEvalId(null)}
+                />
+              ) : (
+                <EvaluacionesList userData={data} onOpen={setOpenEvalId} />
+              )
+            )}
           </div>
         </div>
       </div>

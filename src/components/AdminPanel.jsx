@@ -69,6 +69,7 @@ export function AdminPanel() {
           <h1 style={{ margin: 0, fontSize: '1.4rem', color: '#111827' }}>Panel de Administración</h1>
           <div style={{ display: 'flex', gap: '8px' }}>
             <Button variant="ghost" onClick={() => navigate('/dashboard')}>Ver mi perfil</Button>
+            <Button variant="ghost" onClick={() => navigate('/admin/evaluaciones')}>📝 Evaluaciones</Button>
             <Button onClick={() => navigate('/admin/nuevo')}>+ Nuevo participante</Button>
           </div>
         </div>

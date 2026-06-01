@@ -5,16 +5,13 @@ import { Navbar } from './Navbar';
 import { ProfileTab } from './ProfileTab';
 import { ProgramaTab } from './ProgramaTab';
 import { DocumentosTab } from './DocumentosTab';
+import { AdminUserEvals } from './AdminUserEvals';
 import { Spinner } from './ui/Spinner';
 import { Alert } from './ui/Alert';
 import { Button } from './ui/Button';
+import { evaluacionesParaUsuario } from '../evaluaciones';
 
 const BRAND_COLOR = '#1A56A4';
-const TABS = [
-  { id: 'personal', label: 'Datos personales' },
-  { id: 'programa', label: 'Programa' },
-  { id: 'documentos', label: 'Documentos' },
-];
 
 export function AdminEditUser() {
   const { uid } = useParams();
@@ -38,6 +35,15 @@ export function AdminEditUser() {
     await updateUserData(uid, patch);
     setUserData(prev => ({ ...prev, ...patch }));
   }
+
+  const evalCount = userData ? evaluacionesParaUsuario(userData).length : 0;
+
+  const TABS = [
+    { id: 'personal', label: 'Datos personales' },
+    { id: 'programa', label: 'Programa' },
+    { id: 'documentos', label: 'Documentos' },
+    { id: 'evaluaciones', label: `Evaluaciones${evalCount > 0 ? ` (${evalCount})` : ''}` },
+  ];
 
   return (
     <div style={{ minHeight: '100vh', background: '#F9FAFB' }}>
@@ -88,6 +94,9 @@ export function AdminEditUser() {
               )}
               {activeTab === 'documentos' && (
                 <DocumentosTab data={userData} onSave={handleSave} />
+              )}
+              {activeTab === 'evaluaciones' && (
+                <AdminUserEvals userData={userData} />
               )}
             </div>
           </div>
