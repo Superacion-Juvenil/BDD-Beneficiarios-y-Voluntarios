@@ -40,7 +40,7 @@ const DEFAULT_PASSWORD = process.env.DEFAULT_USER_PASSWORD || 'SJ2025';
 const SHEET_PROGRAMA = {
   'SU': 'SU',
   'MCU': 'MCU',
-  'MJ': 'MJ Sec/Prepa',
+  'MJ': 'MJ Prepa',
   'STAFF SJ': null,
 };
 
@@ -65,6 +65,13 @@ function normalizeStr(v) {
   return String(v).trim();
 }
 
+const OLD_PROGRAMA_NAMES = ['MJ Sec/Prepa', 'MJ Sec', 'MJ Prepa/Sec', 'MJ General', 'MJ'];
+function normalizePrograma(value) {
+  if (!value) return '';
+  const v = String(value).trim();
+  return OLD_PROGRAMA_NAMES.includes(v) ? 'MJ Prepa' : v;
+}
+
 function findCol(row, candidates) {
   const keys = Object.keys(row).map(k => k.trim().toLowerCase());
   for (const c of candidates) {
@@ -85,7 +92,7 @@ function rowToUser(row, sheetName) {
 
   const parsed = parseCURP(curp);
   const tipoParticipante = sheetName === 'STAFF SJ' ? 'Voluntario' : 'Beneficiario';
-  const programa = SHEET_PROGRAMA[sheetName] || extractField(row, ['programa']);
+  const programa = normalizePrograma(SHEET_PROGRAMA[sheetName] ?? extractField(row, ['programa']));
 
   const marcaTemporal = extractField(row, ['marca temporal', 'timestamp', 'fecha registro']);
 

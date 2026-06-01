@@ -4,7 +4,7 @@ import { SectionTitle } from './ui/SectionTitle';
 import { Alert } from './ui/Alert';
 import { Button } from './ui/Button';
 
-const PROGRAMAS = ['MJ Sec/Prepa', 'MCU', 'SU', 'Essencia', 'Escudería Real'];
+const PROGRAMAS = ['MJ Prepa', 'MCU', 'SU', 'Essencia', 'Escudería Real'];
 const DISTRITOS = ['Norte', 'Sur', 'Poniente', 'Oriente'];
 const STATUSES = ['Activo', 'Inactivo', 'Pre-alianza', 'En camino', 'Inicial', 'Alianza'];
 
