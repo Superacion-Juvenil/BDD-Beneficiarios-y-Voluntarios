@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAllUsers } from '../hooks/useUser';
 import { calcAge, isMinor } from '../lib/curp';
-import { Navbar } from './Navbar';
+import { AdminLayout } from './AdminLayout';
 import { Spinner } from './ui/Spinner';
 import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
@@ -62,9 +62,8 @@ export function AdminPanel() {
   }, [users, search]);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F9FAFB' }}>
-      <Navbar showAdminBtn={false} />
-      <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '24px 16px' }}>
+    <AdminLayout>
+      <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
           <h1 style={{ margin: 0, fontSize: '1.4rem', color: '#111827' }}>Panel de Administración</h1>
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -162,6 +161,6 @@ export function AdminPanel() {
           </>
         )}
       </div>
-    </div>
+    </AdminLayout>
   );
 }
