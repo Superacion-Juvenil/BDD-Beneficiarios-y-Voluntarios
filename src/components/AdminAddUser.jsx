@@ -21,6 +21,9 @@ const emptyForm = {
   fechaNacimiento: '', sexo: '', correo: '', telefono: '',
   calle: '', colonia: '', cp: '', municipio: '',
   tutorNombre: '', tutorTelefono: '', tutorCorreo: '',
+  telefonoCasa: '', nombrePadre: '', telefonoPadre: '', correoPadre: '',
+  nombreMadre: '', telefonoMadre: '', correoMadre: '',
+  alergias: '', tallaPlayera: '', seguroMedico: '',
   tipoParticipante: 'Beneficiario', programa: '', distrito: '', status: 'Activo',
   gradoEscolar: '', escuela: '', carrera: '',
   ocupacion: '', empresa: '', programasSJ: '',
@@ -190,17 +193,51 @@ export function AdminAddUser() {
 
           {minor && (
             <>
-              <SectionTitle>Datos del tutor / padre</SectionTitle>
-              <Alert type="warning">Participante menor de edad — datos del tutor obligatorios.</Alert>
+              <SectionTitle>Datos de los padres / tutor</SectionTitle>
+              <Alert type="warning">Participante menor de edad — datos del padre o tutor obligatorios.</Alert>
+
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-                <Field label="Nombre del padre o tutor" required error={errors.tutorNombre}>
-                  <Input value={form.tutorNombre} onChange={e => set('tutorNombre', e.target.value)} error={errors.tutorNombre} />
+                <Field label="Teléfono de casa">
+                  <Input value={form.telefonoCasa} onChange={e => set('telefonoCasa', e.target.value)} maxLength={10} />
                 </Field>
-                <Field label="Teléfono del tutor" required error={errors.tutorTelefono}>
-                  <Input value={form.tutorTelefono} onChange={e => set('tutorTelefono', e.target.value)} maxLength={10} error={errors.tutorTelefono} />
+              </div>
+
+              <div style={{ fontWeight: 600, fontSize: '0.82rem', color: '#374151', marginTop: '6px' }}>Padre</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                <Field label="Nombre del padre" required error={errors.tutorNombre}>
+                  <Input value={form.nombrePadre} onChange={e => { set('nombrePadre', e.target.value); set('tutorNombre', e.target.value); }} error={errors.tutorNombre} />
                 </Field>
-                <Field label="Correo del tutor">
-                  <Input type="email" value={form.tutorCorreo} onChange={e => set('tutorCorreo', e.target.value)} />
+                <Field label="Teléfono del padre" required error={errors.tutorTelefono}>
+                  <Input value={form.telefonoPadre} onChange={e => { set('telefonoPadre', e.target.value); set('tutorTelefono', e.target.value); }} maxLength={10} error={errors.tutorTelefono} />
+                </Field>
+                <Field label="Correo del padre">
+                  <Input type="email" value={form.correoPadre} onChange={e => { set('correoPadre', e.target.value); set('tutorCorreo', e.target.value); }} />
+                </Field>
+              </div>
+
+              <div style={{ fontWeight: 600, fontSize: '0.82rem', color: '#374151', marginTop: '6px' }}>Madre</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                <Field label="Nombre de la madre">
+                  <Input value={form.nombreMadre} onChange={e => set('nombreMadre', e.target.value)} />
+                </Field>
+                <Field label="Teléfono de la madre">
+                  <Input value={form.telefonoMadre} onChange={e => set('telefonoMadre', e.target.value)} maxLength={10} />
+                </Field>
+                <Field label="Correo de la madre">
+                  <Input type="email" value={form.correoMadre} onChange={e => set('correoMadre', e.target.value)} />
+                </Field>
+              </div>
+
+              <div style={{ fontWeight: 600, fontSize: '0.82rem', color: '#374151', marginTop: '6px' }}>Información adicional</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                <Field label="Alergias">
+                  <Input value={form.alergias} onChange={e => set('alergias', e.target.value)} />
+                </Field>
+                <Field label="Talla de playera">
+                  <Input value={form.tallaPlayera} onChange={e => set('tallaPlayera', e.target.value)} />
+                </Field>
+                <Field label="Seguro médico / emergencia">
+                  <Input value={form.seguroMedico} onChange={e => set('seguroMedico', e.target.value)} />
                 </Field>
               </div>
             </>
