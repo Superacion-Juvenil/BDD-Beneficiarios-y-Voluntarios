@@ -6,7 +6,7 @@ import { Button } from './ui/Button';
 
 const PROGRAMAS = ['Essencia', 'Escudería Real', 'MJ Prepa', 'MCU', 'SU', 'VEM', 'BRECHA'];
 const DISTRITOS = ['Sur/TEC', 'Norte/UNI', 'Poniente/UDEM', 'Otra comunidad'];
-const STATUSES = ['Activo', 'Inactivo', 'Pre-alianza', 'En camino', 'Inicial', 'Alianza'];
+const STATUSES = ['Activo', 'Baja', 'Graduado'];
 
 export function ProgramaTab({ data, onSave, isAdmin }) {
   const [form, setForm] = useState({ ...data });
