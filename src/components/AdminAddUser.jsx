@@ -12,7 +12,7 @@ import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 
 const PROGRAMAS = ['Essencia', 'Escudería Real', 'MJ Prepa', 'MCU', 'SU', 'VEM', 'BRECHA'];
-const DISTRITOS = ['Norte', 'Sur', 'Poniente', 'Oriente'];
+const DISTRITOS = ['Sur/TEC', 'Norte/UNI', 'Poniente/UDEM', 'Otra comunidad'];
 const STATUSES = ['Activo', 'Inactivo', 'Pre-alianza', 'En camino', 'Inicial', 'Alianza'];
 const DEFAULT_PASSWORD = import.meta.env.VITE_DEFAULT_PASSWORD || 'SJ2025';
 
@@ -220,7 +220,7 @@ export function AdminAddUser() {
                 {PROGRAMAS.map(p => <option key={p} value={p}>{p}</option>)}
               </Select>
             </Field>
-            <Field label="Distrito">
+            <Field label="Zona/Distrito">
               <Select value={form.distrito} onChange={e => set('distrito', e.target.value)}>
                 <option value="">Selecciona...</option>
                 {DISTRITOS.map(d => <option key={d} value={d}>{d}</option>)}
