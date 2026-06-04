@@ -6,6 +6,7 @@ export const EVENT_TYPES = [
   { id: 'carrera-vivamus',    label: 'Carrera Vivamus',              icon: '🏃', color: '#993556' },
   { id: 'conferencia-verano', label: 'Conferencia de Verano',        icon: '🎤', color: '#7c3aed' },
   { id: 'actividad-mh',       label: 'Actividad de mujeres/hombres', icon: '👥', color: '#0891b2' },
+  { id: 'brecha',             label: 'Brecha',                       icon: '⚡', color: '#c2410c' },
   { id: 'otro',               label: 'Otro',                         icon: '📅', color: '#6b7a99' },
 ];
 

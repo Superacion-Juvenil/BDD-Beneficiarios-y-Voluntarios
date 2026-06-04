@@ -4,7 +4,7 @@ import { createSignupClient } from '../lib/supabase';
 import { createUserDocument } from '../hooks/useUser';
 import { parseCURP, validateCURP, calcAge, isMinor, formatFechaNac } from '../lib/curp';
 import { validateEmail, validatePhone, validateCP } from '../lib/validators';
-import { Navbar } from './Navbar';
+import { AdminLayout } from './AdminLayout';
 import { Field, Input, Select, Textarea } from './ui/Field';
 import { SectionTitle } from './ui/SectionTitle';
 import { Alert } from './ui/Alert';
@@ -109,15 +109,13 @@ export function AdminAddUser() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F9FAFB' }}>
-      <Navbar showAdminBtn />
-      <div style={{ maxWidth: '860px', margin: '0 auto', padding: '24px 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-          <Button variant="ghost" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={() => navigate('/admin')}>
-            ← Volver
-          </Button>
-          <h1 style={{ margin: 0, fontSize: '1.2rem', color: '#111827' }}>Nuevo participante</h1>
-        </div>
+    <AdminLayout>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+        <Button variant="ghost" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={() => navigate('/admin')}>
+          ← Volver
+        </Button>
+        <h1 style={{ margin: 0, fontSize: '1.2rem', color: '#111827' }}>Nuevo participante</h1>
+      </div>
 
         {created && (
           <Alert type="success" onDismiss={() => setCreated(null)}>
@@ -263,7 +261,6 @@ export function AdminAddUser() {
             <Button type="button" variant="ghost" onClick={() => navigate('/admin')}>Cancelar</Button>
           </div>
         </form>
-      </div>
-    </div>
+    </AdminLayout>
   );
 }

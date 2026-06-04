@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAllUsers, updateUserData } from '../hooks/useUser';
-import { Navbar } from './Navbar';
+import { AdminLayout } from './AdminLayout';
 import { Spinner } from './ui/Spinner';
 import { Alert } from './ui/Alert';
 import { Button } from './ui/Button';
@@ -69,57 +69,49 @@ export function AdminEventosSection() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F9FAFB' }}>
-      <Navbar showAdminBtn />
-      <div style={{ maxWidth: '960px', margin: '0 auto', padding: '24px 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          <Button variant="ghost" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={() => navigate('/admin')}>
-            ← Volver
-          </Button>
-          <h1 style={{ margin: 0, fontSize: '1.3rem', color: '#111827' }}>
-            🎯 Eventos
-          </h1>
-          <span style={{
-            background: '#7c3aed', color: 'white', borderRadius: '12px',
-            padding: '2px 10px', fontSize: '0.78rem', fontWeight: 700,
-          }}>{totalEventos}</span>
-        </div>
-
-        {error && <Alert type="error" style={{ marginBottom: '16px' }}>{error}</Alert>}
-        {toast && (
-          <div role="status" style={{ marginBottom: '16px' }}>
-            <Alert type="success">{toast}</Alert>
-          </div>
-        )}
-
-        {loading ? <Spinner /> : (
-          <div style={{ background: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-            <div style={{ display: 'flex', borderBottom: '1px solid #E5E7EB', overflowX: 'auto' }}>
-              {tabs.map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  style={{
-                    padding: '14px 20px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-                    fontWeight: activeTab === tab.id ? 700 : 500, fontSize: '0.88rem',
-                    color: activeTab === tab.id ? BRAND_COLOR : '#6B7280', background: 'transparent',
-                    borderBottom: activeTab === tab.id ? `3px solid ${BRAND_COLOR}` : '3px solid transparent',
-                    transition: 'all 0.15s',
-                  }}
-                >{tab.label}</button>
-              ))}
-            </div>
-            <div style={{ padding: '20px 24px' }}>
-              {activeTab === 'registrar' && (
-                <RegistrarEventoForm users={users} onRegister={handleRegister} />
-              )}
-              {activeTab === 'historial' && (
-                <HistorialEventos users={users} onUpdate={handleUpdate} onDelete={handleDelete} />
-              )}
-            </div>
-          </div>
-        )}
+    <AdminLayout eventsBadge={loading ? null : totalEventos}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+        <h1 style={{ margin: 0, fontSize: '1.3rem', color: '#111827' }}>🎯 Eventos</h1>
+        <span style={{
+          background: '#7c3aed', color: 'white', borderRadius: '12px',
+          padding: '2px 10px', fontSize: '0.78rem', fontWeight: 700,
+        }}>{totalEventos}</span>
       </div>
-    </div>
+
+      {error && <Alert type="error" style={{ marginBottom: '16px' }}>{error}</Alert>}
+      {toast && (
+        <div role="status" style={{ marginBottom: '16px' }}>
+          <Alert type="success">{toast}</Alert>
+        </div>
+      )}
+
+      {loading ? <Spinner /> : (
+        <div style={{ background: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
+          <div style={{ display: 'flex', borderBottom: '1px solid #E5E7EB', overflowX: 'auto' }}>
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  padding: '14px 20px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+                  fontWeight: activeTab === tab.id ? 700 : 500, fontSize: '0.88rem',
+                  color: activeTab === tab.id ? BRAND_COLOR : '#6B7280', background: 'transparent',
+                  borderBottom: activeTab === tab.id ? `3px solid ${BRAND_COLOR}` : '3px solid transparent',
+                  transition: 'all 0.15s',
+                }}
+              >{tab.label}</button>
+            ))}
+          </div>
+          <div style={{ padding: '20px 24px' }}>
+            {activeTab === 'registrar' && (
+              <RegistrarEventoForm users={users} onRegister={handleRegister} />
+            )}
+            {activeTab === 'historial' && (
+              <HistorialEventos users={users} onUpdate={handleUpdate} onDelete={handleDelete} />
+            )}
+          </div>
+        </div>
+      )}
+    </AdminLayout>
   );
 }
