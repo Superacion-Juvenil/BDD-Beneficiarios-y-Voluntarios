@@ -11,7 +11,7 @@ import { Alert } from './ui/Alert';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 
-const PROGRAMAS = ['MJ Prepa', 'MCU', 'SU', 'Essencia', 'Escudería Real'];
+const PROGRAMAS = ['Essencia', 'Escudería Real', 'MJ Prepa', 'MCU', 'SU', 'VEM', 'BRECHA'];
 const DISTRITOS = ['Norte', 'Sur', 'Poniente', 'Oriente'];
 const STATUSES = ['Activo', 'Inactivo', 'Pre-alianza', 'En camino', 'Inicial', 'Alianza'];
 const DEFAULT_PASSWORD = import.meta.env.VITE_DEFAULT_PASSWORD || 'SJ2025';
