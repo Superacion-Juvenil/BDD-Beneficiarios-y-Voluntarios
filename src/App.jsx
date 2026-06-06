@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { Login } from './components/Login';
 import { ChangePassword } from './components/ChangePassword';
@@ -6,7 +7,9 @@ import { Dashboard } from './components/Dashboard';
 import { AdminPanel } from './components/AdminPanel';
 import { AdminEditUser } from './components/AdminEditUser';
 import { AdminAddUser } from './components/AdminAddUser';
+import { AdminEventosSection } from './components/AdminEventosSection';
 import { Spinner } from './components/ui/Spinner';
+import { runMigrations } from './lib/migrations';
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, isAdmin, mustChangePassword, loading } = useAuth();
@@ -25,6 +28,11 @@ function AdminRedirect() {
 
 function AppRoutes() {
   const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (user) runMigrations();
+  }, [user]);
+
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spinner /></div>;
   return (
     <Routes>
@@ -42,6 +50,9 @@ function AppRoutes() {
       } />
       <Route path="/admin/nuevo" element={
         <ProtectedRoute adminOnly><AdminAddUser /></ProtectedRoute>
+      } />
+      <Route path="/admin/eventos" element={
+        <ProtectedRoute adminOnly><AdminEventosSection /></ProtectedRoute>
       } />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

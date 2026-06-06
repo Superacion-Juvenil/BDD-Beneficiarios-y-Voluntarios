@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import '../index.css';
 
-const BRAND = '#1A56A4';
-
 function SidebarLogo() {
   return (
     <div style={{
@@ -32,15 +30,9 @@ function SidebarLogo() {
   );
 }
 
-function UserInfo({ userData, isAdmin }) {
-  const name = isAdmin
-    ? 'Administrador'
-    : [userData?.nombre, userData?.apellidoPaterno].filter(Boolean).join(' ') || 'Usuario';
-
-  const role = isAdmin
-    ? 'Admin'
-    : userData?.tipoParticipante || userData?.programa || 'Participante';
-
+function UserInfo({ userData }) {
+  const name = [userData?.nombre, userData?.apellidoPaterno].filter(Boolean).join(' ') || 'Usuario';
+  const role = userData?.tipoParticipante || userData?.programa || 'Participante';
   const initial = (name[0] || '?').toUpperCase();
 
   return (
@@ -101,27 +93,13 @@ function NavItem({ icon, label, badge, active, onClick }) {
   );
 }
 
-export function Sidebar({ activeSection, onSectionChange, isAdmin, userData, onLogout, badges = {} }) {
+export function Sidebar({ items = [], activeSection, onSectionChange, userData, onLogout }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   function select(section) {
     onSectionChange(section);
     setMobileOpen(false);
   }
-
-  const userItems = [
-    { id: 'perfil',       icon: '👤', label: 'Perfil' },
-    { id: 'evaluaciones', icon: '📝', label: 'Evaluaciones', badge: badges.evaluaciones },
-  ];
-
-  const adminItems = [
-    { id: 'usuarios',     icon: '👥', label: 'Usuarios',     badge: badges.usuarios },
-    { id: 'agregar',      icon: '➕', label: 'Agregar' },
-    { id: 'evaluaciones', icon: '📝', label: 'Evaluaciones', badge: badges.evaluaciones },
-    { id: 'eventos',      icon: '🎯', label: 'Eventos',      badge: badges.eventos },
-  ];
-
-  const items = isAdmin ? adminItems : userItems;
 
   return (
     <>
@@ -147,7 +125,7 @@ export function Sidebar({ activeSection, onSectionChange, isAdmin, userData, onL
         aria-label="Navegación principal"
       >
         <SidebarLogo />
-        <UserInfo userData={userData} isAdmin={isAdmin} />
+        <UserInfo userData={userData} />
 
         <div style={{ flex: 1, padding: '8px 0' }}>
           {items.map(item => (
