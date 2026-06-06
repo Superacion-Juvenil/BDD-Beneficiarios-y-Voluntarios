@@ -40,7 +40,18 @@ create table if not exists public.profiles (
   "docFechaPASI" text,
   "mustChangePassword" boolean default true,
   "createdAt" timestamptz default now(),
-  "updatedAt" timestamptz default now()
+  "updatedAt" timestamptz default now(),
+  -- Datos de padres / tutores (menores de edad)
+  "telefonoCasa" text,
+  "nombrePadre" text,
+  "telefonoPadre" text,
+  "correoPadre" text,
+  "nombreMadre" text,
+  "telefonoMadre" text,
+  "correoMadre" text,
+  "alergias" text,
+  "tallaPlayera" text,
+  "seguroMedico" text
 );
 
 create index if not exists profiles_apellido_paterno_idx on public.profiles ("apellidoPaterno");
