@@ -5,10 +5,12 @@ import { AdminLayout } from './AdminLayout';
 import { ProfileTab } from './ProfileTab';
 import { ProgramaTab } from './ProgramaTab';
 import { DocumentosTab } from './DocumentosTab';
+import { AdminUserEvals } from './AdminUserEvals';
 import { UserEventsList } from './UserEventsList';
 import { Spinner } from './ui/Spinner';
 import { Alert } from './ui/Alert';
 import { Button } from './ui/Button';
+import { evaluacionesParaUsuario } from '../evaluaciones';
 
 const BRAND_COLOR = '#1A56A4';
 
@@ -21,10 +23,12 @@ export function AdminEditUser() {
   const [activeTab, setActiveTab] = useState('personal');
 
   const eventCount = userData ? (userData.eventos || []).length : 0;
+  const evalCount = userData ? evaluacionesParaUsuario(userData).length : 0;
   const TABS = [
     { id: 'personal', label: 'Datos personales' },
     { id: 'programa', label: 'Programa' },
     { id: 'documentos', label: 'Documentos' },
+    { id: 'evaluaciones', label: `Evaluaciones${evalCount > 0 ? ` (${evalCount})` : ''}` },
     { id: 'eventos', label: `Eventos (${eventCount})` },
   ];
 
@@ -102,6 +106,9 @@ export function AdminEditUser() {
             )}
             {activeTab === 'documentos' && (
               <DocumentosTab data={userData} onSave={handleSave} />
+            )}
+            {activeTab === 'evaluaciones' && (
+              <AdminUserEvals userData={userData} />
             )}
             {activeTab === 'eventos' && (
               <UserEventsList
