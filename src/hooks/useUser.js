@@ -40,7 +40,22 @@ export function useUser(uid) {
     setUserData(prev => ({ ...prev, ...patch }));
   }
 
-  return { userData, setUserData, loading, error, saveUser };
+  async function saveEvaluacion(targetUid, evalId, answers) {
+    const current = (userData?.evaluaciones) || {};
+    const updated = {
+      ...current,
+      [evalId]: { completedAt: new Date().toISOString(), answers },
+    };
+    const patch = { evaluaciones: updated, updatedAt: new Date().toISOString() };
+    const { error: err } = await supabase
+      .from('profiles')
+      .update(patch)
+      .eq('id', targetUid);
+    if (err) throw err;
+    setUserData(prev => ({ ...prev, evaluaciones: updated }));
+  }
+
+  return { userData, setUserData, loading, error, saveUser, saveEvaluacion };
 }
 
 export async function getAllUsers() {
