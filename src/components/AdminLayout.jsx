@@ -4,10 +4,11 @@ import { Navbar } from './Navbar';
 const BRAND_COLOR = '#1A56A4';
 
 const NAV_ITEMS = [
-  { path: '/admin',         label: 'Participantes', icon: '👥', exact: true },
-  { path: '/admin/nuevo',   label: 'Nuevo participante', icon: '➕' },
-  { path: '/admin/evaluaciones', label: 'Evaluaciones', icon: '📝' },
-  { path: '/admin/eventos', label: 'Eventos',       icon: '🎯' },
+  { path: '/admin',              label: 'Participantes', icon: '👥', exact: true },
+  { path: '/admin/nuevo',        label: 'Nuevo participante', icon: '➕' },
+  { path: '/admin/estadisticas', label: 'Estadísticas',  icon: '📊' },
+  { path: '/admin/evaluaciones', label: 'Evaluaciones',  icon: '📝' },
+  { path: '/admin/eventos',      label: 'Eventos',       icon: '🎯' },
 ];
 
 export function AdminLayout({ children, eventsBadge }) {
