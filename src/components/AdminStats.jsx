@@ -69,7 +69,6 @@ export function AdminStats() {
     const voluntarios = users.filter(u => u.tipoParticipante === 'Voluntario');
     const activos = users.filter(u => (u.status || 'Activo') === 'Activo').length;
 
-    // Programa × Sexo
     const programaSet = new Set(users.map(u => norm(u.programa)).filter(Boolean));
     const programas = [...programaSet].sort();
     const programaValuesH = {}, programaValuesM = {};
@@ -78,11 +77,9 @@ export function AdminStats() {
       programaValuesM[p] = users.filter(u => norm(u.programa) === p && sexOf(u) === 'Mujer').length;
     }
 
-    // Sexo total
     const totalH = users.filter(u => sexOf(u) === 'Hombre').length;
     const totalM = users.filter(u => sexOf(u) === 'Mujer').length;
 
-    // Edad × Sexo
     const buckets = ['13–17', '18–21', '22–25'];
     const edadH = {}, edadM = {};
     for (const b of buckets) { edadH[b] = 0; edadM[b] = 0; }
@@ -94,31 +91,23 @@ export function AdminStats() {
       else if (sx === 'Mujer') edadM[b]++;
     }
 
-    // Distritos
     const distritos = countBy(users, u => u.distrito);
-
-    // Municipios
     const municipios = countBy(users, u => u.municipio);
 
-    // Beneficiarios con voluntariado activo (externo o servicio registrado)
     const benefConVol = beneficiarios.filter(u => norm(u.voluntariadoExterno) || norm(u.servicio) || norm(u.programasSJ)).length;
 
-    // Escuelas (beneficiarios)
     const escuelas = countBy(beneficiarios, u => u.escuela);
-
-    // Carreras (beneficiarios)
     const carreras = countBy(beneficiarios, u => u.carrera);
-
-    // Ocupación (voluntarios)
     const ocupaciones = countBy(voluntarios, u => u.ocupacion);
-
-    // Grado escolar
     const grados = countBy(users, u => u.gradoEscolar);
 
-    // Documentación completa
     const docsCompletos = users.filter(u => u.docTerminos && u.docCartaResponsiva && u.docCapacitacionPASI).length;
 
-    // Menores vs mayores
+    const sinRoble = users.filter(u => !u.docCapacitacionPASI);
+    const sinRobleTotal = sinRoble.length;
+    const sinRoblePorPrograma = countBy(sinRoble, u => u.programa);
+    const sinRoblePorDistrito = countBy(sinRoble, u => u.distrito);
+
     const menores = users.filter(u => {
       const a = calcAge(u.fechaNacimiento);
       return a !== null && a < 18;
@@ -133,8 +122,31 @@ export function AdminStats() {
       benefConVol,
       escuelas, carreras, ocupaciones, grados,
       docsCompletos, menores,
+      sinRoble, sinRobleTotal, sinRoblePorPrograma, sinRoblePorDistrito,
     };
   }, [users]);
+
+  function exportarSinRoble() {
+    const rows = data.sinRoble.map(u => ({
+      CURP: u.curp || '',
+      Nombre: [u.nombre, u.apellidoPaterno, u.apellidoMaterno].filter(Boolean).join(' '),
+      Programa: u.programa || '',
+      Distrito: u.distrito || '',
+      Tipo: u.tipoParticipante || '',
+      Correo: u.correo || '',
+      Telefono: u.telefono || '',
+    }));
+    const headers = Object.keys(rows[0] || { CURP: '', Nombre: '', Programa: '', Distrito: '', Tipo: '', Correo: '', Telefono: '' });
+    const escape = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const csv = [headers.join(','), ...rows.map(r => headers.map(h => escape(r[h])).join(','))].join('\n');
+    const blob = new Blob(["﻿" + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sin_capacitacion_roble_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <AdminLayout>
@@ -147,7 +159,6 @@ export function AdminStats() {
 
       {loading ? <Spinner /> : (
         <>
-          {/* KPIs */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px', marginBottom: '20px' }}>
             <StatCard label="Total" value={data.total} />
             <StatCard label="Beneficiarios" value={data.beneficiarios} color="#059669" />
@@ -158,9 +169,9 @@ export function AdminStats() {
             <StatCard label="Menores de edad" value={data.menores} color="#D97706" />
             <StatCard label="Benef. con voluntariado" value={data.benefConVol} color="#DB2777" />
             <StatCard label="Docs completos" value={data.docsCompletos} color="#65A30D" />
+            <StatCard label="Sin capacitación Roble" value={data.sinRobleTotal} color="#DC2626" />
           </div>
 
-          {/* Charts grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '16px' }}>
             <Card title="Hombres y mujeres por programa" subtitle="Distribución por sexo en cada programa">
               <GroupedBarChart
@@ -220,6 +231,64 @@ export function AdminStats() {
             <Card title="Grado escolar" subtitle="Distribución académica">
               <HBarChart data={data.grados} color="#D97706" />
             </Card>
+
+            <Card title="Sin capacitación Roble por programa" subtitle="Personas que aún no han tomado PASI">
+              <HBarChart data={data.sinRoblePorPrograma} color="#DC2626" />
+            </Card>
+
+            <Card title="Sin capacitación Roble por distrito" subtitle="Personas que aún no han tomado PASI">
+              <HBarChart data={data.sinRoblePorDistrito} color="#B91C1C" />
+            </Card>
+          </div>
+
+          <div style={{ marginTop: '24px', background: 'white', borderRadius: '12px', boxShadow: '0 1px 4px rgba(0,0,0,0.07)', overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1rem', color: '#111827' }}>Personas sin capacitación Fundación Roble (PASI)</h3>
+                <p style={{ margin: '4px 0 0', color: '#6B7280', fontSize: '0.82rem' }}>
+                  {data.sinRobleTotal} {data.sinRobleTotal === 1 ? 'persona pendiente' : 'personas pendientes'} de tomar la capacitación.
+                </p>
+              </div>
+              {data.sinRobleTotal > 0 && (
+                <button
+                  onClick={exportarSinRoble}
+                  style={{
+                    padding: '8px 14px', borderRadius: '8px', border: 'none',
+                    background: '#DC2626', color: 'white', fontWeight: 600, fontSize: '0.82rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Descargar CSV
+                </button>
+              )}
+            </div>
+            <div style={{ overflowX: 'auto', maxHeight: '420px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                <thead>
+                  <tr style={{ background: '#F9FAFB', position: 'sticky', top: 0 }}>
+                    {['Nombre', 'CURP', 'Programa', 'Distrito', 'Tipo', 'Correo', 'Teléfono'].map(h => (
+                      <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: '#6B7280', fontSize: '0.72rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.sinRobleTotal === 0 && (
+                    <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#9CA3AF' }}>Todos los participantes han tomado la capacitación.</td></tr>
+                  )}
+                  {data.sinRoble.map((u, i) => (
+                    <tr key={u.uid || u.id || i} style={{ borderTop: '1px solid #F3F4F6', background: i % 2 === 0 ? 'white' : '#FAFAFA' }}>
+                      <td style={{ padding: '8px 14px', color: '#111827' }}>{[u.nombre, u.apellidoPaterno, u.apellidoMaterno].filter(Boolean).join(' ') || '—'}</td>
+                      <td style={{ padding: '8px 14px', fontFamily: 'monospace', fontSize: '0.78rem', color: '#6B7280' }}>{u.curp || '—'}</td>
+                      <td style={{ padding: '8px 14px', color: '#374151' }}>{u.programa || '—'}</td>
+                      <td style={{ padding: '8px 14px', color: '#374151' }}>{u.distrito || '—'}</td>
+                      <td style={{ padding: '8px 14px', color: '#374151' }}>{u.tipoParticipante || '—'}</td>
+                      <td style={{ padding: '8px 14px', color: '#374151' }}>{u.correo || '—'}</td>
+                      <td style={{ padding: '8px 14px', color: '#374151' }}>{u.telefono || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       )}
