@@ -8,6 +8,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { AdminEditUser } from './components/AdminEditUser';
 import { AdminAddUser } from './components/AdminAddUser';
 import { AdminStats } from './components/AdminStats';
+import { AdminReports } from './components/AdminReports';
 import { AdminEvalPage } from './components/AdminEvalPage';
 import { AdminEventosSection } from './components/AdminEventosSection';
 import { Spinner } from './components/ui/Spinner';
@@ -55,6 +56,9 @@ function AppRoutes() {
       } />
       <Route path="/admin/estadisticas" element={
         <ProtectedRoute adminOnly><AdminStats /></ProtectedRoute>
+      } />
+      <Route path="/admin/reportes" element={
+        <ProtectedRoute adminOnly><AdminReports /></ProtectedRoute>
       } />
       <Route path="/admin/evaluaciones" element={
         <ProtectedRoute adminOnly><AdminEvalPage /></ProtectedRoute>
