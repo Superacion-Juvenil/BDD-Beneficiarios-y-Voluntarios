@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Alert } from './ui/Alert';
 import { Button } from './ui/Button';
 import { Field, Input } from './ui/Field';
@@ -66,6 +66,19 @@ export function DocumentosTab({ data, onSave }) {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    if (data && (data.id || data.uid || data.curp)) {
+      setForm({
+        docTerminos: data.docTerminos || false,
+        docCartaResponsiva: data.docCartaResponsiva || false,
+        docCapacitacionPASI: data.docCapacitacionPASI || false,
+        docFechaPASI: data.docFechaPASI || '',
+        ...data,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.id, data?.uid, data?.curp]);
+
   function set(key, val) {
     setForm(prev => ({ ...prev, [key]: val }));
   }
@@ -74,8 +87,9 @@ export function DocumentosTab({ data, onSave }) {
 
   async function handleSave(e) {
     e.preventDefault();
+    setError('');
     if (form.docCapacitacionPASI && !form.docFechaPASI) {
-      setError('Ingresa la fecha de capacitación PASI.');
+      setError('Ingresa la fecha en que tomaste la capacitación de Fundación Roble.');
       return;
     }
     setSaving(true);
@@ -84,7 +98,7 @@ export function DocumentosTab({ data, onSave }) {
         docTerminos: form.docTerminos,
         docCartaResponsiva: form.docCartaResponsiva,
         docCapacitacionPASI: form.docCapacitacionPASI,
-        docFechaPASI: form.docFechaPASI,
+        docFechaPASI: form.docCapacitacionPASI ? form.docFechaPASI : '',
       });
       setSuccess('Documentos actualizados correctamente.');
       setTimeout(() => setSuccess(''), 3000);
@@ -102,7 +116,7 @@ export function DocumentosTab({ data, onSave }) {
 
       {pending > 0 && (
         <Alert type="warning">
-          Tienes <strong>{pending} {pending === 1 ? 'documento pendiente' : 'documentos pendientes'}</strong>. Haz clic en cada tarjeta para confirmar.
+          Tienes <strong>{pending} {pending === 1 ? 'documento pendiente' : 'documentos pendientes'}</strong>. Marca los que ya completaste y guarda los cambios; no necesitas tenerlos todos para guardar.
         </Alert>
       )}
       {pending === 0 && (
@@ -124,23 +138,55 @@ export function DocumentosTab({ data, onSave }) {
           checked={form.docCartaResponsiva}
           onChange={val => set('docCartaResponsiva', val)}
         />
-        <DocCard
-          id="pasi"
-          title="Capacitación Fundación Roble (PASI)"
-          description='He completado la capacitación de Prevención del Abuso Sexual Infantil.'
-          checked={form.docCapacitacionPASI}
-          onChange={val => set('docCapacitacionPASI', val)}
-          extra={
-            <Field label="Fecha de capacitación" required>
-              <Input
-                type="date"
-                value={form.docFechaPASI || ''}
-                onChange={e => set('docFechaPASI', e.target.value)}
-                onClick={e => e.stopPropagation()}
+        <div style={{
+          padding: '16px',
+          borderRadius: '10px',
+          border: `2px solid ${form.docCapacitacionPASI ? BRAND_COLOR : '#E5E7EB'}`,
+          background: form.docCapacitacionPASI ? '#E8F0FB' : 'white',
+          transition: 'all 0.2s',
+        }}>
+          <p style={{ margin: 0, fontWeight: 600, color: '#111827', fontSize: '0.9rem' }}>
+            Capacitación Fundación Roble (PASI)
+          </p>
+          <p style={{ margin: '4px 0 12px', color: '#6B7280', fontSize: '0.82rem', lineHeight: 1.4 }}>
+            Prevención del Abuso Sexual Infantil.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.88rem', color: '#111827' }}>
+              <input
+                type="radio"
+                name="pasi-status"
+                checked={form.docCapacitacionPASI === true}
+                onChange={() => set('docCapacitacionPASI', true)}
+                style={{ accentColor: BRAND_COLOR }}
               />
-            </Field>
-          }
-        />
+              Ya tomé la capacitación
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.88rem', color: '#111827' }}>
+              <input
+                type="radio"
+                name="pasi-status"
+                checked={form.docCapacitacionPASI === false}
+                onChange={() => { set('docCapacitacionPASI', false); set('docFechaPASI', ''); }}
+                style={{ accentColor: BRAND_COLOR }}
+              />
+              Aún no la he tomado
+            </label>
+          </div>
+
+          {form.docCapacitacionPASI && (
+            <div style={{ marginTop: '12px' }}>
+              <Field label="Fecha en que la tomé" required>
+                <Input
+                  type="date"
+                  value={form.docFechaPASI || ''}
+                  onChange={e => set('docFechaPASI', e.target.value)}
+                />
+              </Field>
+            </div>
+          )}
+        </div>
       </div>
 
       <div style={{ marginTop: '8px' }}>

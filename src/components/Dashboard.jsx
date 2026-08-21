@@ -22,13 +22,13 @@ const BASE_TABS = [
 
 export function Dashboard() {
   const { user } = useAuth();
-  const { userData, loading, error, saveUser, saveEvaluacion } = useUser(user?.uid);
+  const { userData, loading, error, saveUser, saveEvaluacion } = useUser(user?.id);
   const [activeTab, setActiveTab] = useState('personal');
   const [openEvalId, setOpenEvalId] = useState(null);
   const [emailUpdateMsg, setEmailUpdateMsg] = useState('');
 
   async function handleSave(patch) {
-    await saveUser(user.uid, patch);
+    await saveUser(user.id, patch);
     // Si el usuario agregó/cambió su correo, sincronizarlo con Supabase Auth
     // para habilitar el inicio de sesión con código OTP en el futuro.
     if (patch.correo && patch.correo !== user.email) {
@@ -140,7 +140,7 @@ export function Dashboard() {
                 <EvalForm
                   evalId={openEvalId}
                   userData={data}
-                  onSave={(evalId, answers) => saveEvaluacion(user.uid, evalId, answers)}
+                  onSave={(evalId, answers) => saveEvaluacion(user.id, evalId, answers)}
                   onBack={() => setOpenEvalId(null)}
                 />
               ) : (
