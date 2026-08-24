@@ -31,7 +31,10 @@ export function useUser(uid) {
   }, [uid]);
 
   async function saveUser(targetUid, data) {
-    const patch = { ...data, updatedAt: new Date().toISOString() };
+    // Excluir campos que no son columnas reales de 'profiles' (uid es alias local, id es la PK,
+    // evaluaciones se maneja aparte) para evitar "column not found" del schema cache.
+    const { uid: _uid, id: _id, evaluaciones: _ev, ...clean } = data;
+    const patch = { ...clean, updatedAt: new Date().toISOString() };
     const { error: err } = await supabase
       .from('profiles')
       .update(patch)
@@ -78,7 +81,8 @@ export async function getUserByUid(uid) {
 }
 
 export async function updateUserData(uid, data) {
-  const patch = { ...data, updatedAt: new Date().toISOString() };
+  const { uid: _uid, id: _id, evaluaciones: _ev, ...clean } = data;
+  const patch = { ...clean, updatedAt: new Date().toISOString() };
   const { error } = await supabase
     .from('profiles')
     .update(patch)
