@@ -63,7 +63,10 @@ export function AdminPanel() {
   }, [users, search]);
 
   return (
-    <AdminLayout eventsBadge={loading ? null : stats.eventos}>
+    <AdminLayout
+      usersBadge={loading ? null : stats.total}
+      eventsBadge={loading ? null : stats.eventos}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
         <h1 style={{ margin: 0, fontSize: '1.4rem', color: '#111827' }}>Panel de Administración</h1>
         <Button variant="ghost" onClick={() => navigate('/dashboard')}>Ver mi perfil</Button>
