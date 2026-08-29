@@ -5,7 +5,50 @@ import { Field, Input } from './ui/Field';
 
 const BRAND_COLOR = '#1A56A4';
 
-function DocCard({ id, title, description, checked, onChange, extra }) {
+const CARTAS_RESPONSIVAS = [
+  { id: 'secundaria',    label: 'Secundaria',    url: '/documentos/carta-responsiva-secundaria.pdf' },
+  { id: 'prepa',         label: 'Preparatoria',  url: '/documentos/carta-responsiva-prepa.pdf' },
+  { id: 'universitarios', label: 'Universidad',  url: '/documentos/carta-responsiva-universitarios.pdf' },
+];
+
+function CartasResponsivas() {
+  return (
+    <div
+      onClick={e => e.stopPropagation()}
+      style={{
+        marginTop: '10px', padding: '12px',
+        background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: '8px',
+      }}
+    >
+      <p style={{ margin: '0 0 8px', fontSize: '0.8rem', color: '#374151', fontWeight: 600 }}>
+        Consulta la carta que corresponde a tu nivel antes de confirmar:
+      </p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+        {CARTAS_RESPONSIVAS.map(carta => (
+          <a
+            key={carta.id}
+            href={carta.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              padding: '7px 12px', borderRadius: '7px',
+              border: `1px solid ${BRAND_COLOR}`, background: 'white',
+              color: BRAND_COLOR, fontSize: '0.8rem', fontWeight: 600,
+              textDecoration: 'none', whiteSpace: 'nowrap',
+            }}
+          >
+            <span aria-hidden="true">📄</span>
+            {carta.label}
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DocCard({ id, title, description, checked, onChange, extra, aside }) {
   return (
     <div
       onClick={() => onChange(!checked)}
@@ -44,6 +87,7 @@ function DocCard({ id, title, description, checked, onChange, extra }) {
       <div style={{ flex: 1 }}>
         <p style={{ margin: 0, fontWeight: 600, color: '#111827', fontSize: '0.9rem' }}>{title}</p>
         <p style={{ margin: '4px 0 0', color: '#6B7280', fontSize: '0.82rem', lineHeight: 1.4 }}>{description}</p>
+        {aside}
         {checked && extra && (
           <div onClick={e => e.stopPropagation()} style={{ marginTop: '10px' }}>
             {extra}
@@ -137,6 +181,7 @@ export function DocumentosTab({ data, onSave }) {
           description='Autorizo el uso de mi imagen en materiales de Superación Juvenil A.B.P.'
           checked={form.docCartaResponsiva}
           onChange={val => set('docCartaResponsiva', val)}
+          aside={<CartasResponsivas />}
         />
         <div style={{
           padding: '16px',
