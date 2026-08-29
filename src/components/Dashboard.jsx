@@ -107,7 +107,7 @@ function EvaluacionesSection({ data, openEvalId, setOpenEvalId, onSaveEval }) {
 export function Dashboard() {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
-  const { userData, loading, error, saveUser, saveEvaluacion } = useUser(user?.uid);
+  const { userData, loading, error, saveUser, saveEvaluacion } = useUser(user?.id);
   const [section, setSection] = useState(() => sessionStorage.getItem('sj_section') || 'perfil');
   const [openEvalId, setOpenEvalId] = useState(null);
   const [emailUpdateMsg, setEmailUpdateMsg] = useState('');
@@ -119,7 +119,7 @@ export function Dashboard() {
   }
 
   async function handleSave(patch) {
-    await saveUser(user.uid, patch);
+    await saveUser(user.id, patch);
     // Si el usuario agregó/cambió su correo, sincronizarlo con Supabase Auth
     // para habilitar el inicio de sesión con código OTP en el futuro.
     if (patch.correo && patch.correo !== user.email) {
@@ -170,7 +170,7 @@ export function Dashboard() {
               data={data}
               openEvalId={openEvalId}
               setOpenEvalId={setOpenEvalId}
-              onSaveEval={(evalId, answers) => saveEvaluacion(user.uid, evalId, answers)}
+              onSaveEval={(evalId, answers) => saveEvaluacion(user.id, evalId, answers)}
             />
           )}
         </>

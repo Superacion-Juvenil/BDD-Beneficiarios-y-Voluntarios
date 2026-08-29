@@ -13,6 +13,15 @@ export function ProfileTab({ data, onSave, isAdmin, readOnlyCURP = true }) {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
 
+  // Rellenar el formulario cuando llegan los datos del perfil (carga asíncrona)
+  // o cuando cambia el usuario (edición desde admin).
+  useEffect(() => {
+    if (data && (data.id || data.uid || data.curp)) {
+      setForm({ ...data });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.id, data?.uid, data?.curp]);
+
   // Recalculate from CURP whenever it changes
   useEffect(() => {
     if (form.curp && form.curp.length === 18) {

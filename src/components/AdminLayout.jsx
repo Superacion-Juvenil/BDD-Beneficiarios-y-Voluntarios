@@ -2,11 +2,12 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Layout } from './Layout';
 
 const NAV_ITEMS = [
-  { id: 'participantes', path: '/admin',              label: 'Usuarios',           icon: '👥', exact: true },
-  { id: 'nuevo',         path: '/admin/nuevo',        label: 'Agregar',            icon: '➕' },
-  { id: 'estadisticas',  path: '/admin/estadisticas', label: 'Estadísticas',       icon: '📊' },
-  { id: 'evaluaciones',  path: '/admin/evaluaciones', label: 'Evaluaciones',       icon: '📝' },
-  { id: 'eventos',       path: '/admin/eventos',      label: 'Eventos',            icon: '🎯' },
+  { id: 'participantes', path: '/admin',              label: 'Usuarios',     icon: '👥', exact: true },
+  { id: 'nuevo',         path: '/admin/nuevo',        label: 'Agregar',      icon: '➕' },
+  { id: 'estadisticas',  path: '/admin/estadisticas', label: 'Estadísticas', icon: '📊' },
+  { id: 'reportes',      path: '/admin/reportes',     label: 'Reportes',     icon: '📥' },
+  { id: 'evaluaciones',  path: '/admin/evaluaciones', label: 'Evaluaciones', icon: '📝' },
+  { id: 'eventos',       path: '/admin/eventos',      label: 'Eventos',      icon: '🎯' },
 ];
 
 export function AdminLayout({ children, usersBadge, evalsBadge, eventsBadge }) {

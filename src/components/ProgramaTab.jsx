@@ -4,7 +4,7 @@ import { SectionTitle } from './ui/SectionTitle';
 import { Alert } from './ui/Alert';
 import { Button } from './ui/Button';
 
-const PROGRAMAS = ['Essencia', 'Escudería Real', 'MJ Prepa', 'MCU', 'SU', 'VEM', 'BRECHA'];
+const PROGRAMAS = ['Essencia', 'Escudería Real', 'MJ Prepa', 'MCU', 'SU', 'VEM'];
 const DISTRITOS = ['Sur/TEC', 'Norte/UNI', 'Poniente/UDEM', 'Otra comunidad'];
 const STATUSES = ['Activo', 'Baja', 'Graduado'];
 

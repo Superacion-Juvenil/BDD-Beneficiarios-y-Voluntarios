@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { validatePassword } from '../lib/validators';
 import { Alert } from './ui/Alert';
@@ -8,11 +9,13 @@ import { Field, Input } from './ui/Field';
 const BRAND_COLOR = '#1A56A4';
 
 export function ChangePassword() {
-  const { changePassword, logout, userData } = useAuth();
+  const { changePassword, logout, userData, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const [newPass, setNewPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -24,11 +27,16 @@ export function ChangePassword() {
     setLoading(true);
     try {
       await changePassword(newPass);
+      setDone(true);
     } catch (err) {
       setError('Error al cambiar la contraseña: ' + err.message);
     } finally {
       setLoading(false);
     }
+  }
+
+  function goHome() {
+    navigate(isAdmin ? '/admin' : '/dashboard', { replace: true });
   }
 
   return (
@@ -61,6 +69,17 @@ export function ChangePassword() {
           </p>
         </div>
 
+        {done ? (
+          <div style={{ textAlign: 'center' }}>
+            <Alert type="success" style={{ marginBottom: '20px' }}>
+              Contraseña actualizada correctamente.
+            </Alert>
+            <Button onClick={goHome} style={{ width: '100%' }}>
+              Ir a mi perfil
+            </Button>
+          </div>
+        ) : (
+        <>
         <Alert type="warning" style={{ marginBottom: '16px' }}>
           Tu contraseña temporal <strong>SJ2025</strong> debe ser reemplazada para proteger tu cuenta.
         </Alert>
@@ -96,6 +115,8 @@ export function ChangePassword() {
             Cerrar sesión
           </button>
         </form>
+        </>
+        )}
       </div>
     </div>
   );
