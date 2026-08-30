@@ -8,6 +8,29 @@ import { Field, Input } from './ui/Field';
 const BRAND_COLOR = '#1A56A4';
 const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL || 'documentacion@superacionjuvenil.org').toLowerCase();
 
+/**
+ * El enlace de acceso del admin depende del envío de correo de Supabase, que
+ * con el SMTP integrado tiene un cupo bajo por hora. Culpar siempre al correo
+ * capturado escondía la causa real y dejaba al admin sin saber qué hacer.
+ */
+function describeMagicLinkError(err) {
+  const code = err?.code || err?.error_code || '';
+  const msg = (err?.message || '').toLowerCase();
+
+  if (code === 'over_email_send_rate_limit' || msg.includes('rate limit')) {
+    return 'Se alcanzó el límite de correos por hora de Supabase, así que no se pudo ' +
+      'enviar el enlace. Espera un momento y vuelve a intentarlo; el correo que ' +
+      'capturaste no tiene nada de malo.';
+  }
+  if (msg.includes('signups not allowed') || msg.includes('user not found')) {
+    return 'Ese correo no está registrado como administrador. Revisa que esté bien escrito.';
+  }
+  if (msg.includes('failed to fetch') || msg.includes('networkerror')) {
+    return 'No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.';
+  }
+  return 'No se pudo enviar el enlace' + (err?.message ? `: ${err.message}` : '.');
+}
+
 export function Login() {
   const { loginWithCURP, loginAdminWithMagicLink, requestCURPOTP, verifyOTP } = useAuth();
 
@@ -45,8 +68,8 @@ export function Login() {
     try {
       await loginAdminWithMagicLink(adminEmail.trim());
       setAdminPhase('sent');
-    } catch {
-      setError('No se pudo enviar el enlace. Verifica que el correo sea correcto.');
+    } catch (err) {
+      setError(describeMagicLinkError(err));
     } finally {
       setLoading(false);
     }
