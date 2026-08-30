@@ -21,7 +21,7 @@ const PROFILE_TABS = [
   { id: 'documentos', label: 'Documentos' },
 ];
 
-function PerfilSection({ data, user, onSave }) {
+function PerfilSection({ data, user, onSave, isAdmin }) {
   const [activeTab, setActiveTab] = useState('personal');
 
   const fullName = [data.nombre, data.apellidoPaterno, data.apellidoMaterno]
@@ -75,8 +75,8 @@ function PerfilSection({ data, user, onSave }) {
           ))}
         </div>
         <div style={{ padding: '20px 24px' }}>
-          {activeTab === 'personal'   && <ProfileTab data={data} onSave={onSave} />}
-          {activeTab === 'programa'   && <ProgramaTab data={data} onSave={onSave} />}
+          {activeTab === 'personal'   && <ProfileTab data={data} onSave={onSave} isAdmin={isAdmin} />}
+          {activeTab === 'programa'   && <ProgramaTab data={data} onSave={onSave} isAdmin={isAdmin} />}
           {activeTab === 'documentos' && <DocumentosTab data={data} onSave={onSave} />}
         </div>
       </div>
@@ -163,7 +163,7 @@ export function Dashboard() {
           )}
 
           {section === 'perfil' && (
-            <PerfilSection data={data} user={user} onSave={handleSave} />
+            <PerfilSection data={data} user={user} onSave={handleSave} isAdmin={isAdmin} />
           )}
           {section === 'evaluaciones' && (
             <EvaluacionesSection
