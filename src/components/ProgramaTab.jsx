@@ -43,8 +43,8 @@ export function ProgramaTab({ data, onSave, isAdmin }) {
       const msg = err?.message || '';
       setError(
         msg.includes('No se permite cambiar')
-          ? 'Ese dato lo administra la coordinación de Superación Juvenil y no se puede ' +
-            'cambiar desde aquí. Los demás cambios no se guardaron; avísale a tu coordinador.'
+          ? 'Ese dato solo lo puede modificar un administrador. Los demás cambios no se ' +
+            'guardaron; avísale a tu coordinador de Superación Juvenil.'
           : 'Error al guardar: ' + (msg || 'desconocido'),
       );
     } finally {
@@ -60,8 +60,8 @@ export function ProgramaTab({ data, onSave, isAdmin }) {
       <SectionTitle>Participación</SectionTitle>
       {!isAdmin && (
         <p style={{ margin: '-4px 0 4px', fontSize: '0.8rem', color: '#6B7280', lineHeight: 1.45 }}>
-          Estos datos los administra la coordinación de Superación Juvenil y no se pueden
-          editar desde aquí. Si alguno es incorrecto, avísale a tu coordinador.
+          Solo un administrador puede modificar estos datos. Si alguno es incorrecto,
+          avísale a tu coordinador de Superación Juvenil.
         </p>
       )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
