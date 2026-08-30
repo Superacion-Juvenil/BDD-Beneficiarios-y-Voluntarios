@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createSignupClient } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { createUserDocument } from '../hooks/useUser';
 import { parseCURP, validateCURP, calcAge, isMinor, formatFechaNac } from '../lib/curp';
 import { validateEmail, validatePhone, validateCP } from '../lib/validators';
@@ -30,6 +30,58 @@ const emptyForm = {
   servicio: '', voluntariadoExterno: '', notas: '',
   docTerminos: false, docCartaResponsiva: false, docCapacitacionPASI: false, docFechaPASI: '',
 };
+
+/**
+ * Traduce los errores de Supabase Auth al dar de alta un participante.
+ * Los participantes se registran con un correo interno (CURP@sj.internal) que
+ * no es una dirección real, así que los fallos relacionados con correo no los
+ * puede resolver quien captura: necesitan un ajuste en la consola de Supabase.
+ */
+function describeSignupError(err, curp) {
+  const code = err?.code || err?.error_code || '';
+  const msg = (err?.message || '').toLowerCase();
+
+  if (code === 'over_email_send_rate_limit' || msg.includes('email rate limit')) {
+    return 'Supabase bloqueó el alta porque se alcanzó el límite de correos por hora. ' +
+      'Esto ocurre cuando la confirmación por correo sigue activada: cada alta intenta ' +
+      'enviar un correo a una dirección interna que no existe. Pide que se desactive ' +
+      '"Confirm email" en Authentication → Providers → Email; mientras tanto, habrá que esperar una hora.';
+  }
+
+  if (code === 'email_address_invalid' || (msg.includes('email address') && msg.includes('invalid'))) {
+    return `Supabase rechazó el correo interno generado para el CURP ${curp}. ` +
+      'No es un dato que hayas capturado mal: el dominio interno que usa la plataforma ' +
+      'está siendo rechazado. Repórtalo para revisar la configuración de Auth.';
+  }
+
+  if (code === 'already_registered' || msg.includes('already registered') ||
+      msg.includes('already been registered') || msg.includes('duplicate') ||
+      msg.includes('user already')) {
+    return `El CURP ${curp} ya tiene una cuenta registrada.`;
+  }
+
+  if (code === 'forbidden' || code === 'unauthorized') {
+    return 'Tu sesión no tiene permiso para dar de alta participantes. ' +
+      'Vuelve a iniciar sesión como administrador e inténtalo de nuevo.';
+  }
+
+  if (msg.includes('function not found') || msg.includes('failed to send a request')) {
+    return 'No se encontró el servicio de alta de participantes. ' +
+      'Hace falta desplegar la función create-participant en Supabase.';
+  }
+
+  if (msg.includes('password')) {
+    return 'La contraseña por defecto no cumple los requisitos configurados en Supabase. ' +
+      'Revisa VITE_DEFAULT_PASSWORD o la política de contraseñas del proyecto.';
+  }
+
+  if (msg.includes('failed to fetch') || msg.includes('networkerror')) {
+    return 'No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo; ' +
+      'los datos capturados siguen en el formulario.';
+  }
+
+  return 'Error al crear usuario: ' + (err?.message || 'desconocido');
+}
 
 export function AdminAddUser() {
   const navigate = useNavigate();
@@ -87,25 +139,28 @@ export function AdminAddUser() {
 
     setSaving(true);
     try {
-      const email = `${form.curp}@sj.internal`;
-      const signupClient = createSignupClient();
-      const { data, error: signUpErr } = await signupClient.auth.signUp({
-        email,
-        password: DEFAULT_PASSWORD,
+      // La cuenta se crea en una Edge Function con la API de admin, que la deja
+      // ya confirmada y no envía correo de verificación. Hacerlo con signUp()
+      // desde aquí dispararía un correo a una dirección interna inexistente.
+      const { data, error: fnErr } = await supabase.functions.invoke('create-participant', {
+        body: { curp: form.curp, password: DEFAULT_PASSWORD },
       });
-      if (signUpErr) throw signUpErr;
-      const newUid = data?.user?.id;
+
+      // functions.invoke envuelve los errores HTTP; el detalle viene en el cuerpo.
+      if (fnErr) {
+        let detail = null;
+        try { detail = await fnErr.context?.json(); } catch { /* sin cuerpo JSON */ }
+        throw Object.assign(new Error(detail?.message || fnErr.message), { code: detail?.error });
+      }
+      if (data?.error) throw Object.assign(new Error(data.message || data.error), { code: data.error });
+
+      const newUid = data?.uid;
       if (!newUid) throw new Error('No se recibió el id del nuevo usuario.');
       await createUserDocument(newUid, { ...form });
       setCreated({ uid: newUid, curp: form.curp, password: DEFAULT_PASSWORD });
       setForm(emptyForm);
     } catch (err) {
-      const msg = (err?.message || '').toLowerCase();
-      if (msg.includes('already registered') || msg.includes('already been registered') || msg.includes('duplicate') || msg.includes('user already')) {
-        setGeneralError(`El CURP ${form.curp} ya tiene una cuenta registrada.`);
-      } else {
-        setGeneralError('Error al crear usuario: ' + (err?.message || 'desconocido'));
-      }
+      setGeneralError(describeSignupError(err, form.curp));
     } finally {
       setSaving(false);
     }
