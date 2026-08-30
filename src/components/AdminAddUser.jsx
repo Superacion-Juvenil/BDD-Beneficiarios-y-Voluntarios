@@ -124,6 +124,14 @@ export function AdminAddUser() {
     if (phoneErr) e.telefono = phoneErr;
     const cpErr = validateCP(form.cp);
     if (cpErr) e.cp = cpErr;
+    // Estos cuatro los protege el trigger trg_enforce_profile_safe_update: el
+    // participante no puede corregirlos después desde su perfil, así que si no
+    // se capturan aquí la cuenta queda incompleta y solo un admin puede
+    // arreglarla.
+    if (!form.tipoParticipante) e.tipoParticipante = 'Selecciona el tipo de participante';
+    if (!form.programa) e.programa = 'Selecciona el programa';
+    if (!form.distrito) e.distrito = 'Selecciona la zona o distrito';
+    if (!form.status) e.status = 'Selecciona el status';
     if (minor) {
       if (!form.tutorNombre?.trim()) e.tutorNombre = 'Nombre del tutor requerido';
       if (!form.tutorTelefono?.trim()) e.tutorTelefono = 'Teléfono del tutor requerido';
@@ -135,7 +143,13 @@ export function AdminAddUser() {
     e.preventDefault();
     setGeneralError('');
     const errs = validate();
-    if (Object.keys(errs).length) { setErrors(errs); return; }
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      // Los campos obligatorios están repartidos por todo el formulario, así
+      // que sin este aviso el botón parecería no hacer nada.
+      setGeneralError('Faltan campos obligatorios por llenar. Revisa los marcados en rojo.');
+      return;
+    }
 
     setSaving(true);
     try {
@@ -297,27 +311,49 @@ export function AdminAddUser() {
           )}
 
           <SectionTitle>Programa</SectionTitle>
+          <p style={{ margin: '-4px 0 4px', fontSize: '0.8rem', color: '#6B7280', lineHeight: 1.45 }}>
+            El participante no puede editar estos datos desde su perfil, así que hay que
+            capturarlos aquí.
+          </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
-            <Field label="Tipo de participante">
-              <Select value={form.tipoParticipante} onChange={e => set('tipoParticipante', e.target.value)}>
+            <Field label="Tipo de participante" required error={errors.tipoParticipante}>
+              <Select
+                value={form.tipoParticipante}
+                onChange={e => set('tipoParticipante', e.target.value)}
+                error={errors.tipoParticipante}
+              >
+                <option value="">Selecciona...</option>
                 <option value="Beneficiario">Beneficiario</option>
                 <option value="Voluntario">Voluntario</option>
               </Select>
             </Field>
-            <Field label="Programa">
-              <Select value={form.programa} onChange={e => set('programa', e.target.value)}>
+            <Field label="Programa" required error={errors.programa}>
+              <Select
+                value={form.programa}
+                onChange={e => set('programa', e.target.value)}
+                error={errors.programa}
+              >
                 <option value="">Selecciona...</option>
                 {PROGRAMAS.map(p => <option key={p} value={p}>{p}</option>)}
               </Select>
             </Field>
-            <Field label="Zona/Distrito">
-              <Select value={form.distrito} onChange={e => set('distrito', e.target.value)}>
+            <Field label="Zona/Distrito" required error={errors.distrito}>
+              <Select
+                value={form.distrito}
+                onChange={e => set('distrito', e.target.value)}
+                error={errors.distrito}
+              >
                 <option value="">Selecciona...</option>
                 {DISTRITOS.map(d => <option key={d} value={d}>{d}</option>)}
               </Select>
             </Field>
-            <Field label="Status">
-              <Select value={form.status} onChange={e => set('status', e.target.value)}>
+            <Field label="Status" required error={errors.status}>
+              <Select
+                value={form.status}
+                onChange={e => set('status', e.target.value)}
+                error={errors.status}
+              >
+                <option value="">Selecciona...</option>
                 {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
               </Select>
             </Field>
