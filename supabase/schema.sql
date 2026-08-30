@@ -99,6 +99,9 @@ create policy "owner_update"
   with check (auth.uid() = id);
 
 -- Trigger: dueños sólo pueden modificar un subconjunto seguro de campos.
+-- Se protege la identidad (id, CURP, fecha de nacimiento, sexo) y el estado
+-- administrativo (status). El participante sí elige su tipo de participante,
+-- programa y zona/distrito desde su perfil.
 create or replace function public.enforce_profile_safe_update()
 returns trigger
 language plpgsql
@@ -122,15 +125,8 @@ begin
   if new."sexo" is distinct from old."sexo" then
     raise exception 'No se permite cambiar sexo';
   end if;
-  if new."tipoParticipante" is distinct from old."tipoParticipante" then
-    raise exception 'No se permite cambiar tipoParticipante';
-  end if;
-  if new."programa" is distinct from old."programa" then
-    raise exception 'No se permite cambiar programa';
-  end if;
-  if new."distrito" is distinct from old."distrito" then
-    raise exception 'No se permite cambiar distrito';
-  end if;
+  -- "tipoParticipante", "programa" y "distrito" los elige el propio
+  -- participante desde su perfil, así que no se protegen aquí.
   if new."status" is distinct from old."status" then
     raise exception 'No se permite cambiar status';
   end if;

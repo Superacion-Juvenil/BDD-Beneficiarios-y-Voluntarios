@@ -62,7 +62,7 @@ supabase/schema.sql        # tabla profiles + RLS + trigger
 - **No commitear** `.env`, ni archivos en `/data/` (ya en `.gitignore`). La `service_role` key de Supabase **nunca** debe exponerse al frontend.
 - `vercel.json` define rewrite SPA y cabeceras de seguridad — Vercel autodetecta Vite, no se necesita config adicional.
 - `xlsx` tiene CVE conocido sin fix upstream (prototype pollution / ReDoS); se usa solo en el script de migración del lado servidor, no en el frontend.
-- El esquema SQL define un trigger `trg_enforce_profile_safe_update` que impide que un usuario no-admin modifique campos sensibles (CURP, programa, status, etc.) aunque la RLS le permita actualizar su fila.
+- El esquema SQL define un trigger `trg_enforce_profile_safe_update` que impide que un usuario no-admin modifique campos sensibles aunque la RLS le permita actualizar su fila: identidad (`id`, `curp`, `fechaNacimiento`, `sexo`, `createdAt`) y `status`. El participante **sí** elige su `tipoParticipante`, `programa` y `distrito`. Si se cambia esa lista, actualizar también `PROTECTED_FIELDS` en `ProgramaTab.jsx`.
 
 ## Documentación
 

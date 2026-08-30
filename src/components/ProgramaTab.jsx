@@ -9,8 +9,9 @@ const DISTRITOS = ['Sur/TEC', 'Norte/UNI', 'Poniente/UDEM', 'Otra comunidad'];
 const STATUSES = ['Activo', 'Baja', 'Graduado'];
 
 // Campos que el trigger trg_enforce_profile_safe_update (supabase/schema.sql)
-// solo deja modificar a un admin. Mantener esta lista alineada con el trigger.
-const PROTECTED_FIELDS = ['tipoParticipante', 'programa', 'distrito', 'status'];
+// solo deja modificar a un admin. Mantener esta lista alineada con el trigger:
+// el participante sí elige su tipo, programa y distrito, pero no su status.
+const PROTECTED_FIELDS = ['status'];
 
 export function ProgramaTab({ data, onSave, isAdmin }) {
   const [form, setForm] = useState({ ...data });
@@ -60,38 +61,26 @@ export function ProgramaTab({ data, onSave, isAdmin }) {
       <SectionTitle>Participación</SectionTitle>
       {!isAdmin && (
         <p style={{ margin: '-4px 0 4px', fontSize: '0.8rem', color: '#6B7280', lineHeight: 1.45 }}>
-          Estos datos los administra la coordinación de Superación Juvenil y no se pueden
-          editar desde aquí. Si alguno es incorrecto, avísale a tu coordinador.
+          El status lo administra la coordinación de Superación Juvenil. Si es incorrecto,
+          avísale a tu coordinador.
         </p>
       )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
         <Field label="Tipo de participante">
-          <Select
-            value={form.tipoParticipante || ''}
-            onChange={e => set('tipoParticipante', e.target.value)}
-            disabled={!isAdmin}
-          >
+          <Select value={form.tipoParticipante || ''} onChange={e => set('tipoParticipante', e.target.value)}>
             <option value="">Selecciona...</option>
             <option value="Beneficiario">Beneficiario</option>
             <option value="Voluntario">Voluntario</option>
           </Select>
         </Field>
         <Field label="Programa">
-          <Select
-            value={form.programa || ''}
-            onChange={e => set('programa', e.target.value)}
-            disabled={!isAdmin}
-          >
+          <Select value={form.programa || ''} onChange={e => set('programa', e.target.value)}>
             <option value="">Selecciona...</option>
             {PROGRAMAS.map(p => <option key={p} value={p}>{p}</option>)}
           </Select>
         </Field>
         <Field label="Zona/Distrito">
-          <Select
-            value={form.distrito || ''}
-            onChange={e => set('distrito', e.target.value)}
-            disabled={!isAdmin}
-          >
+          <Select value={form.distrito || ''} onChange={e => set('distrito', e.target.value)}>
             <option value="">Selecciona...</option>
             {DISTRITOS.map(d => <option key={d} value={d}>{d}</option>)}
           </Select>
