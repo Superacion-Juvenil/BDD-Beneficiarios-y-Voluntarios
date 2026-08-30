@@ -8,6 +8,10 @@ const PROGRAMAS = ['Essencia', 'Escudería Real', 'MJ Prepa', 'MCU', 'SU', 'VEM'
 const DISTRITOS = ['Sur/TEC', 'Norte/UNI', 'Poniente/UDEM', 'Otra comunidad'];
 const STATUSES = ['Activo', 'Baja', 'Graduado'];
 
+// Campos que el trigger trg_enforce_profile_safe_update (supabase/schema.sql)
+// solo deja modificar a un admin. Mantener esta lista alineada con el trigger.
+const PROTECTED_FIELDS = ['tipoParticipante', 'programa', 'distrito', 'status'];
+
 export function ProgramaTab({ data, onSave, isAdmin }) {
   const [form, setForm] = useState({ ...data });
   const [saving, setSaving] = useState(false);
@@ -24,11 +28,25 @@ export function ProgramaTab({ data, onSave, isAdmin }) {
     e.preventDefault();
     setSaving(true);
     try {
-      await onSave(form);
+      // Los campos de PROTECTED_FIELDS solo los puede tocar un admin: la base
+      // los defiende con un trigger y rechaza el update completo si cambian.
+      // Para un participante ni siquiera se envían, así que un valor arrastrado
+      // en el formulario no puede tumbar el guardado del resto.
+      const patch = { ...form };
+      if (!isAdmin) {
+        for (const field of PROTECTED_FIELDS) delete patch[field];
+      }
+      await onSave(patch);
       setSuccess('Información del programa guardada.');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError('Error al guardar: ' + err.message);
+      const msg = err?.message || '';
+      setError(
+        msg.includes('No se permite cambiar')
+          ? 'Ese dato lo administra la coordinación de Superación Juvenil y no se puede ' +
+            'cambiar desde aquí. Los demás cambios no se guardaron; avísale a tu coordinador.'
+          : 'Error al guardar: ' + (msg || 'desconocido'),
+      );
     } finally {
       setSaving(false);
     }
@@ -40,22 +58,40 @@ export function ProgramaTab({ data, onSave, isAdmin }) {
       {error && <Alert type="error" onDismiss={() => setError('')}>{error}</Alert>}
 
       <SectionTitle>Participación</SectionTitle>
+      {!isAdmin && (
+        <p style={{ margin: '-4px 0 4px', fontSize: '0.8rem', color: '#6B7280', lineHeight: 1.45 }}>
+          Estos datos los administra la coordinación de Superación Juvenil y no se pueden
+          editar desde aquí. Si alguno es incorrecto, avísale a tu coordinador.
+        </p>
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
         <Field label="Tipo de participante">
-          <Select value={form.tipoParticipante || ''} onChange={e => set('tipoParticipante', e.target.value)}>
+          <Select
+            value={form.tipoParticipante || ''}
+            onChange={e => set('tipoParticipante', e.target.value)}
+            disabled={!isAdmin}
+          >
             <option value="">Selecciona...</option>
             <option value="Beneficiario">Beneficiario</option>
             <option value="Voluntario">Voluntario</option>
           </Select>
         </Field>
         <Field label="Programa">
-          <Select value={form.programa || ''} onChange={e => set('programa', e.target.value)}>
+          <Select
+            value={form.programa || ''}
+            onChange={e => set('programa', e.target.value)}
+            disabled={!isAdmin}
+          >
             <option value="">Selecciona...</option>
             {PROGRAMAS.map(p => <option key={p} value={p}>{p}</option>)}
           </Select>
         </Field>
         <Field label="Zona/Distrito">
-          <Select value={form.distrito || ''} onChange={e => set('distrito', e.target.value)}>
+          <Select
+            value={form.distrito || ''}
+            onChange={e => set('distrito', e.target.value)}
+            disabled={!isAdmin}
+          >
             <option value="">Selecciona...</option>
             {DISTRITOS.map(d => <option key={d} value={d}>{d}</option>)}
           </Select>

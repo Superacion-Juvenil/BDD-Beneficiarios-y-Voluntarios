@@ -46,14 +46,15 @@ export function Input({ readOnly, error, style: extraStyle, ...props }) {
   );
 }
 
-export function Select({ error, ...props }) {
+export function Select({ error, disabled, ...props }) {
   return (
     <select
       {...props}
+      disabled={disabled}
       style={{
-        ...inputStyle,
+        ...(disabled ? readOnlyStyle : inputStyle),
         borderColor: error ? '#DC2626' : '#D1D5DB',
-        background: 'white',
+        cursor: disabled ? 'default' : 'pointer',
       }}
     />
   );
