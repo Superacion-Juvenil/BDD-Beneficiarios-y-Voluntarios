@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createSignupClient } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { createUserDocument } from '../hooks/useUser';
 import { parseCURP, validateCURP, calcAge, isMinor, formatFechaNac } from '../lib/curp';
 import { validateEmail, validatePhone, validateCP } from '../lib/validators';
@@ -54,9 +54,20 @@ function describeSignupError(err, curp) {
       'está siendo rechazado. Repórtalo para revisar la configuración de Auth.';
   }
 
-  if (msg.includes('already registered') || msg.includes('already been registered') ||
-      msg.includes('duplicate') || msg.includes('user already')) {
+  if (code === 'already_registered' || msg.includes('already registered') ||
+      msg.includes('already been registered') || msg.includes('duplicate') ||
+      msg.includes('user already')) {
     return `El CURP ${curp} ya tiene una cuenta registrada.`;
+  }
+
+  if (code === 'forbidden' || code === 'unauthorized') {
+    return 'Tu sesión no tiene permiso para dar de alta participantes. ' +
+      'Vuelve a iniciar sesión como administrador e inténtalo de nuevo.';
+  }
+
+  if (msg.includes('function not found') || msg.includes('failed to send a request')) {
+    return 'No se encontró el servicio de alta de participantes. ' +
+      'Hace falta desplegar la función create-participant en Supabase.';
   }
 
   if (msg.includes('password')) {
@@ -128,14 +139,22 @@ export function AdminAddUser() {
 
     setSaving(true);
     try {
-      const email = `${form.curp}@sj.internal`;
-      const signupClient = createSignupClient();
-      const { data, error: signUpErr } = await signupClient.auth.signUp({
-        email,
-        password: DEFAULT_PASSWORD,
+      // La cuenta se crea en una Edge Function con la API de admin, que la deja
+      // ya confirmada y no envía correo de verificación. Hacerlo con signUp()
+      // desde aquí dispararía un correo a una dirección interna inexistente.
+      const { data, error: fnErr } = await supabase.functions.invoke('create-participant', {
+        body: { curp: form.curp, password: DEFAULT_PASSWORD },
       });
-      if (signUpErr) throw signUpErr;
-      const newUid = data?.user?.id;
+
+      // functions.invoke envuelve los errores HTTP; el detalle viene en el cuerpo.
+      if (fnErr) {
+        let detail = null;
+        try { detail = await fnErr.context?.json(); } catch { /* sin cuerpo JSON */ }
+        throw Object.assign(new Error(detail?.message || fnErr.message), { code: detail?.error });
+      }
+      if (data?.error) throw Object.assign(new Error(data.message || data.error), { code: data.error });
+
+      const newUid = data?.uid;
       if (!newUid) throw new Error('No se recibió el id del nuevo usuario.');
       await createUserDocument(newUid, { ...form });
       setCreated({ uid: newUid, curp: form.curp, password: DEFAULT_PASSWORD });

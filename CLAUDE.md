@@ -55,7 +55,7 @@ supabase/schema.sql        # tabla profiles + RLS + trigger
 - La edad **nunca** se almacena, se calcula del CURP en cada render.
 - Contraseñas nunca se guardan en `profiles` — solo Supabase Auth.
 - Columnas en la tabla `profiles` van en camelCase entre comillas (`"apellidoPaterno"`, `"docTerminos"`, etc.) para que el código JS no necesite mapeo.
-- `createSignupClient()` en `src/lib/supabase.js` retorna un cliente sin persistencia de sesión — usarlo siempre que se cree un usuario desde el admin para no reemplazar la sesión del admin.
+- Las altas de participantes pasan por la Edge Function `create-participant` (`supabase/functions/`), que usa `auth.admin.createUser` con `email_confirm: true`. Nunca usar `signUp()` desde el frontend para esto: dispara un correo de verificación a la dirección interna `CURP@sj.internal`, que no existe, y agota el cupo de envíos de Supabase.
 
 ## Notas
 
