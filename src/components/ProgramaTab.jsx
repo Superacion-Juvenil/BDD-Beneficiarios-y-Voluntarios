@@ -10,7 +10,8 @@ const STATUSES = ['Activo', 'Baja', 'Graduado'];
 
 // Campos que el trigger trg_enforce_profile_safe_update (supabase/schema.sql)
 // solo deja modificar a un admin. Mantener esta lista alineada con el trigger.
-const PROTECTED_FIELDS = ['tipoParticipante', 'programa', 'distrito', 'status'];
+// El participante sí elige su tipo, programa y distrito; el status no.
+const PROTECTED_FIELDS = ['status'];
 
 export function ProgramaTab({ data, onSave, isAdmin }) {
   const [form, setForm] = useState({ ...data });
@@ -43,7 +44,7 @@ export function ProgramaTab({ data, onSave, isAdmin }) {
       const msg = err?.message || '';
       setError(
         msg.includes('No se permite cambiar')
-          ? 'Ese dato solo lo puede modificar un administrador. Los demás cambios no se ' +
+          ? 'El status solo lo puede modificar un administrador. Los demás cambios no se ' +
             'guardaron; avísale a tu coordinador de Superación Juvenil.'
           : 'Error al guardar: ' + (msg || 'desconocido'),
       );
@@ -60,38 +61,26 @@ export function ProgramaTab({ data, onSave, isAdmin }) {
       <SectionTitle>Participación</SectionTitle>
       {!isAdmin && (
         <p style={{ margin: '-4px 0 4px', fontSize: '0.8rem', color: '#6B7280', lineHeight: 1.45 }}>
-          Solo un administrador puede modificar estos datos. Si alguno es incorrecto,
-          avísale a tu coordinador de Superación Juvenil.
+          El status lo administra la coordinación de Superación Juvenil. Si es
+          incorrecto, avísale a tu coordinador.
         </p>
       )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
         <Field label="Tipo de participante">
-          <Select
-            value={form.tipoParticipante || ''}
-            onChange={e => set('tipoParticipante', e.target.value)}
-            disabled={!isAdmin}
-          >
+          <Select value={form.tipoParticipante || ''} onChange={e => set('tipoParticipante', e.target.value)}>
             <option value="">Selecciona...</option>
             <option value="Beneficiario">Beneficiario</option>
             <option value="Voluntario">Voluntario</option>
           </Select>
         </Field>
         <Field label="Programa">
-          <Select
-            value={form.programa || ''}
-            onChange={e => set('programa', e.target.value)}
-            disabled={!isAdmin}
-          >
+          <Select value={form.programa || ''} onChange={e => set('programa', e.target.value)}>
             <option value="">Selecciona...</option>
             {PROGRAMAS.map(p => <option key={p} value={p}>{p}</option>)}
           </Select>
         </Field>
         <Field label="Zona/Distrito">
-          <Select
-            value={form.distrito || ''}
-            onChange={e => set('distrito', e.target.value)}
-            disabled={!isAdmin}
-          >
+          <Select value={form.distrito || ''} onChange={e => set('distrito', e.target.value)}>
             <option value="">Selecciona...</option>
             {DISTRITOS.map(d => <option key={d} value={d}>{d}</option>)}
           </Select>
