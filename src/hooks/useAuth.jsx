@@ -1,5 +1,6 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { supabase } from '../lib/supabase';
+import { internalEmailForCURP, LEGACY_INTERNAL_EMAIL_DOMAIN } from '../lib/internalEmail';
 
 const AuthContext = createContext(null);
 
@@ -80,9 +81,19 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function loginWithCURP(curp, password) {
-    const email = `${curp.toUpperCase()}@sj.internal`;
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    const { error } = await supabase.auth.signInWithPassword({
+      email: internalEmailForCURP(curp),
+      password,
+    });
+    if (!error) return;
+    // Las cuentas creadas antes del cambio de dominio interno siguen guardadas
+    // con el dominio anterior hasta que se migren, así que se reintenta con él.
+    if (error.code && error.code !== 'invalid_credentials') throw error;
+    const { error: legacyError } = await supabase.auth.signInWithPassword({
+      email: internalEmailForCURP(curp, LEGACY_INTERNAL_EMAIL_DOMAIN),
+      password,
+    });
+    if (legacyError) throw error;
   }
 
   // Admin: envía magic link al correo del admin

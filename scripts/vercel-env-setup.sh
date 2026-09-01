@@ -22,7 +22,7 @@ set -euo pipefail
 # ── CONFIG: rellena con los valores reales ──────────────────────
 VITE_SUPABASE_URL="https://TU_PROYECTO.supabase.co"
 VITE_SUPABASE_ANON_KEY="TU_ANON_KEY"
-VITE_ADMIN_EMAIL="ADMIN@sj.internal"
+VITE_ADMIN_EMAIL="documentacion@superacionjuvenil.org"
 VITE_DEFAULT_PASSWORD="SJ2025"
 # ────────────────────────────────────────────────────────────────
 

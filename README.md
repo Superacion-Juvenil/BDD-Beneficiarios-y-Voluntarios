@@ -48,7 +48,7 @@ cp .env.example .env
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=...
 
-VITE_ADMIN_EMAIL=ADMIN@sj.internal
+VITE_ADMIN_EMAIL=documentacion@superacionjuvenil.org
 VITE_DEFAULT_PASSWORD=SJ2025
 
 SUPABASE_URL=https://your-project.supabase.co
@@ -59,7 +59,7 @@ DEFAULT_USER_PASSWORD=SJ2025
 ### 4. Crear la cuenta de administrador
 
 En Supabase Dashboard → **Authentication → Users → Add user**:
-- **Email:** `ADMIN@sj.internal`
+- **Email:** el del admin, p. ej. `documentacion@superacionjuvenil.org` (debe ser un dominio real: Supabase Auth rechaza dominios reservados o de prueba)
 - **Password:** la que prefieras (p. ej. `AdminSJ2025!`)
 - Marca la opción de auto-confirmar el email.
 
@@ -172,6 +172,7 @@ vercel.json                  — Configuración de deploy y cabeceras de segurid
 
 ### Participante
 - Login: CURP (18 chars) + contraseña propia
+- Internamente la cuenta se guarda como `CURP@participantes.superacionjuvenil.org`, porque Supabase Auth exige un correo por cuenta y muchos participantes no tienen uno (ver [`src/lib/internalEmail.js`](./src/lib/internalEmail.js))
 - Primer acceso: contraseña temporal `SJ2025` → cambio obligatorio
 - Solo puede ver y editar su propio perfil
 
@@ -201,7 +202,7 @@ Fecha de nacimiento y sexo son de solo lectura para el participante. La edad se 
 ## Decisiones de diseño
 
 - **Sin dependencias de UI** (sin MUI, sin Tailwind): control total del diseño con identidad visual SJ.
-- **Admin identificado por email**: `ADMIN@sj.internal` — no requiere campo `role` en la base, menor superficie de ataque.
+- **Admin identificado por email**: `documentacion@superacionjuvenil.org` — no requiere campo `role` en la base, menor superficie de ataque.
 - **Contraseñas nunca almacenadas en `profiles`**: Supabase Auth gestiona todo el ciclo de vida de credenciales.
 - **Edad calculada en tiempo real**: garantiza exactitud permanente sin jobs de actualización.
 - **Rate limiting**: Supabase Auth lo maneja nativamente.

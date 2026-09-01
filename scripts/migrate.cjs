@@ -217,7 +217,9 @@ async function main() {
   let errors = 0;
 
   for (const user of users) {
-    const email = `${user.curp}@sj.internal`.toLowerCase();
+    // Dominio del correo interno: ver INTERNAL_EMAIL_DOMAIN en
+    // src/lib/internalEmail.js (sj.internal ya no lo acepta Supabase Auth).
+    const email = `${user.curp}@participantes.superacionjuvenil.org`.toLowerCase();
     const { marcaTemporal: _mt, sheetName: _sn, ...profileData } = user;
 
     try {

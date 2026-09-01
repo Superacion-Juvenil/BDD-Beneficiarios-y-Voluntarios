@@ -33,7 +33,7 @@ const emptyForm = {
 
 /**
  * Traduce los errores de Supabase Auth al dar de alta un participante.
- * Los participantes se registran con un correo interno (CURP@sj.internal) que
+ * Los participantes se registran con un correo interno derivado del CURP que
  * no es una dirección real, así que los fallos relacionados con correo no los
  * puede resolver quien captura: necesitan un ajuste en la consola de Supabase.
  */
