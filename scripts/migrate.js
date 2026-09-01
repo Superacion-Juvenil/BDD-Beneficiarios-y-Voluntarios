@@ -37,6 +37,11 @@ const EXCEL_FILE = args.file || './data/participantes.xlsx';
 const DRY_RUN = args['dry-run'] === true || args['dry-run'] === 'true';
 const DEFAULT_PASSWORD = process.env.DEFAULT_USER_PASSWORD || 'SJ2025';
 
+// Dominio del correo interno derivado del CURP. Debe coincidir con
+// INTERNAL_EMAIL_DOMAIN en src/lib/internalEmail.js, que explica por qué ya no
+// se usa sj.internal (Supabase Auth rechaza los dominios reservados).
+const INTERNAL_EMAIL_DOMAIN = 'participantes.superacionjuvenil.org';
+
 const SHEET_PROGRAMA = {
   'SU': 'SU',
   'MCU': 'MCU',
@@ -224,7 +229,7 @@ async function main() {
   let errors = 0;
 
   for (const user of users) {
-    const email = `${user.curp}@sj.internal`.toLowerCase();
+    const email = `${user.curp}@${INTERNAL_EMAIL_DOMAIN}`.toLowerCase();
     const { marcaTemporal: _mt, sheetName: _sn, ...profileData } = user;
 
     try {

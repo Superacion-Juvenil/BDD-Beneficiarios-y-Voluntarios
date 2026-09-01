@@ -42,6 +42,7 @@ src/
 └── lib/
     ├── supabase.js        # init Supabase (cliente principal + signupClient)
     ├── curp.js            # parser CURP + cálculo de edad
+    ├── internalEmail.js   # dominio del correo interno derivado del CURP
     └── validators.js      # validaciones de inputs
 scripts/migrate.js         # importación masiva desde Excel
 supabase/schema.sql        # tabla profiles + RLS + trigger
@@ -55,7 +56,8 @@ supabase/schema.sql        # tabla profiles + RLS + trigger
 - La edad **nunca** se almacena, se calcula del CURP en cada render.
 - Contraseñas nunca se guardan en `profiles` — solo Supabase Auth.
 - Columnas en la tabla `profiles` van en camelCase entre comillas (`"apellidoPaterno"`, `"docTerminos"`, etc.) para que el código JS no necesite mapeo.
-- Las altas de participantes pasan por la Edge Function `create-participant` (`supabase/functions/`), que usa `auth.admin.createUser` con `email_confirm: true`. Nunca usar `signUp()` desde el frontend para esto: dispara un correo de verificación a la dirección interna `CURP@sj.internal`, que no existe, y agota el cupo de envíos de Supabase.
+- Las altas de participantes pasan por la Edge Function `create-participant` (`supabase/functions/`), que usa `auth.admin.createUser` con `email_confirm: true`. Nunca usar `signUp()` desde el frontend para esto: dispara un correo de verificación a la dirección interna del participante, que no existe, y agota el cupo de envíos de Supabase.
+- El correo interno de los participantes es `CURP@participantes.superacionjuvenil.org`. **No usar dominios reservados o de prueba** (`.internal`, `.test`, `example.com`): Supabase Auth los rechaza con `email_address_invalid` y rompe altas y cambios de contraseña. El dominio está definido en `src/lib/internalEmail.js` y duplicado —porque no pueden importar ese módulo— en `supabase/functions/create-participant/index.ts`, `scripts/migrate.js` y `get_login_email_for_curp` (`supabase/schema.sql`); si cambia, hay que actualizar los cuatro.
 
 ## Notas
 

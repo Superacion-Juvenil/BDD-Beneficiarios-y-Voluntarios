@@ -144,7 +144,10 @@ before update on public.profiles
 for each row execute function public.enforce_profile_safe_update();
 
 -- RPC: email real de un CURP para el flujo OTP del login ---------------
--- Retorna NULL si el usuario no tiene correo real (solo @sj.internal).
+-- Retorna NULL si el usuario no tiene correo real, solo el interno derivado del
+-- CURP (ver src/lib/internalEmail.js: el dominio actual es
+-- @participantes.superacionjuvenil.org, y @sj.internal el de las cuentas que
+-- todavía no se hayan migrado).
 create or replace function public.get_login_email_for_curp(p_curp text)
 returns text
 language sql
@@ -157,6 +160,7 @@ as $$
   join auth.users u on u.id = p.id
   where upper(p."curp") = upper(p_curp)
     and u.email not like '%@sj.internal'
+    and u.email not like '%@participantes.superacionjuvenil.org'
   limit 1;
 $$;
 

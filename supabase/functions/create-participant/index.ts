@@ -1,9 +1,9 @@
 // Alta de participantes desde el panel de administración.
 //
 // Se hace aquí y no en el frontend porque `signUp()` dispara un correo de
-// confirmación a la dirección interna del participante (CURP@sj.internal), que
-// no es una dirección real: nadie puede confirmarla y cada intento consume el
-// cupo de envíos de Supabase, que acaba respondiendo 429 y bloqueando las altas.
+// confirmación a la dirección interna del participante, que no es una dirección
+// real: nadie puede confirmarla y cada intento consume el cupo de envíos de
+// Supabase, que acaba respondiendo 429 y bloqueando las altas.
 //
 // `admin.createUser({ email_confirm: true })` crea la cuenta ya confirmada y no
 // envía ningún correo, pero necesita la service_role key, que nunca debe llegar
@@ -15,6 +15,11 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const ADMIN_EMAIL = (Deno.env.get('ADMIN_EMAIL') ?? 'documentacion@superacionjuvenil.org').toLowerCase();
+
+// Dominio del correo interno derivado del CURP. Debe coincidir con
+// INTERNAL_EMAIL_DOMAIN en src/lib/internalEmail.js, que explica por qué ya no
+// se usa sj.internal (Supabase Auth rechaza los dominios reservados).
+const INTERNAL_EMAIL_DOMAIN = 'participantes.superacionjuvenil.org';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -76,7 +81,7 @@ Deno.serve(async (req) => {
   });
 
   const { data, error } = await admin.auth.admin.createUser({
-    email: `${curp}@sj.internal`,
+    email: `${curp}@${INTERNAL_EMAIL_DOMAIN}`,
     password,
     email_confirm: true,
   });
