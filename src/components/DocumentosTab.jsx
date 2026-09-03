@@ -5,13 +5,23 @@ import { Field, Input } from './ui/Field';
 
 const BRAND_COLOR = '#1A56A4';
 
+// Los PDF viven en public/documentos/, así que Vite y Vercel los sirven tal cual.
+const TERMINOS = [
+  { id: 'terminos', label: 'Términos y condiciones', url: '/documentos/terminos-y-condiciones.pdf' },
+];
+
 const CARTAS_RESPONSIVAS = [
   { id: 'secundaria',    label: 'Secundaria',    url: '/documentos/carta-responsiva-secundaria.pdf' },
   { id: 'prepa',         label: 'Preparatoria',  url: '/documentos/carta-responsiva-prepa.pdf' },
   { id: 'universitarios', label: 'Universidad',  url: '/documentos/carta-responsiva-universitarios.pdf' },
 ];
 
-function CartasResponsivas() {
+/**
+ * Enlaces a los PDF de un documento. Va dentro de una DocCard, que es un
+ * checkbox completo, así que cada clic se detiene aquí: abrir el PDF no debe
+ * marcar ni desmarcar la casilla.
+ */
+function PdfLinks({ hint, docs }) {
   return (
     <div
       onClick={e => e.stopPropagation()}
@@ -21,13 +31,13 @@ function CartasResponsivas() {
       }}
     >
       <p style={{ margin: '0 0 8px', fontSize: '0.8rem', color: '#374151', fontWeight: 600 }}>
-        Consulta la carta que corresponde a tu nivel antes de confirmar:
+        {hint}
       </p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-        {CARTAS_RESPONSIVAS.map(carta => (
+        {docs.map(doc => (
           <a
-            key={carta.id}
-            href={carta.url}
+            key={doc.id}
+            href={doc.url}
             target="_blank"
             rel="noopener noreferrer"
             onClick={e => e.stopPropagation()}
@@ -40,7 +50,7 @@ function CartasResponsivas() {
             }}
           >
             <span aria-hidden="true">📄</span>
-            {carta.label}
+            {doc.label}
           </a>
         ))}
       </div>
@@ -174,6 +184,7 @@ export function DocumentosTab({ data, onSave }) {
           description='Acepto los términos y condiciones de Superación Juvenil A.B.P.'
           checked={form.docTerminos}
           onChange={val => set('docTerminos', val)}
+          aside={<PdfLinks hint="Consulta el documento completo antes de aceptar:" docs={TERMINOS} />}
         />
         <DocCard
           id="carta"
@@ -181,7 +192,7 @@ export function DocumentosTab({ data, onSave }) {
           description='Autorizo el uso de mi imagen en materiales de Superación Juvenil A.B.P.'
           checked={form.docCartaResponsiva}
           onChange={val => set('docCartaResponsiva', val)}
-          aside={<CartasResponsivas />}
+          aside={<PdfLinks hint="Consulta la carta que corresponde a tu nivel antes de confirmar:" docs={CARTAS_RESPONSIVAS} />}
         />
         <div style={{
           padding: '16px',
