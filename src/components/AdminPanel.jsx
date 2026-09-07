@@ -10,6 +10,28 @@ import { Alert } from './ui/Alert';
 
 const BRAND_COLOR = '#1A56A4';
 
+/**
+ * Fecha corta para la tabla ("07 sep 2026"). El resto de la app usa el mes
+ * completo, pero aquí la columna convive con otras siete y el formato largo
+ * la desborda. La fecha y hora exactas van en el title de la celda.
+ */
+function formatActualizado(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function tituloActualizado(iso) {
+  if (!iso) return 'Sin registro de actualización';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return 'Sin registro de actualización';
+  return d.toLocaleString('es-MX', {
+    day: 'numeric', month: 'long', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
 function StatCard({ label, value, color = BRAND_COLOR }) {
   return (
     <div style={{
@@ -109,14 +131,14 @@ export function AdminPanel() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
                   <tr style={{ background: '#F9FAFB' }}>
-                    {['Participante', 'CURP', 'Programa', 'Distrito', 'Edad', 'Estado', ''].map(h => (
+                    {['Participante', 'CURP', 'Programa', 'Distrito', 'Edad', 'Estado', 'Actualizado', ''].map(h => (
                       <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: '#6B7280', fontSize: '0.75rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.length === 0 && (
-                    <tr><td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#9CA3AF' }}>No se encontraron participantes</td></tr>
+                    <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#9CA3AF' }}>No se encontraron participantes</td></tr>
                   )}
                   {filtered.map((u, i) => {
                     const age = calcAge(u.fechaNacimiento);
@@ -146,6 +168,12 @@ export function AdminPanel() {
                             {docsPending && <Badge variant="danger">Docs</Badge>}
                             {u.status && <Badge>{u.status}</Badge>}
                           </div>
+                        </td>
+                        <td
+                          style={{ padding: '10px 16px', color: '#6B7280', whiteSpace: 'nowrap' }}
+                          title={tituloActualizado(u.updatedAt)}
+                        >
+                          {formatActualizado(u.updatedAt)}
                         </td>
                         <td style={{ padding: '10px 16px' }}>
                           <Button variant="secondary" style={{ padding: '5px 12px', fontSize: '0.78rem' }} onClick={() => navigate(`/admin/editar/${u.uid}`)}>
