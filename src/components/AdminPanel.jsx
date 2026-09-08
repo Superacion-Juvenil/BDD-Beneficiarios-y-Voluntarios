@@ -7,8 +7,47 @@ import { Spinner } from './ui/Spinner';
 import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
 import { Alert } from './ui/Alert';
+import { Select } from './ui/Field';
 
 const BRAND_COLOR = '#1A56A4';
+
+// Valor centinela para "este campo está vacío". Se necesita porque la cadena
+// vacía ya significa "sin filtro" en los <select>.
+const SIN_ASIGNAR = '__sin_asignar__';
+
+const FILTROS_INICIALES = {
+  programa: '', distrito: '', tipo: '', status: '', edad: '', docs: '',
+};
+
+function coincideCampo(valor, filtro) {
+  if (!filtro) return true;
+  const v = (valor || '').trim();
+  return filtro === SIN_ASIGNAR ? v === '' : v === filtro;
+}
+
+function SelectFiltro({ etiqueta, valor, onChange, children }) {
+  const activo = Boolean(valor);
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: '130px' }}>
+      <span style={{
+        fontSize: '0.68rem', fontWeight: 600, color: '#9CA3AF',
+        textTransform: 'uppercase', letterSpacing: '0.05em',
+      }}>{etiqueta}</span>
+      <Select
+        value={valor}
+        onChange={onChange}
+        style={{
+          fontSize: '0.82rem', padding: '6px 8px',
+          borderColor: activo ? BRAND_COLOR : '#D1D5DB',
+          background: activo ? '#EFF6FF' : 'white',
+          fontWeight: activo ? 600 : 400,
+        }}
+      >
+        {children}
+      </Select>
+    </label>
+  );
+}
 
 /**
  * Fecha corta para la tabla ("07 sep 2026"). El resto de la app usa el mes
@@ -51,6 +90,10 @@ export function AdminPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [filtros, setFiltros] = useState(FILTROS_INICIALES);
+
+  const setFiltro = (campo, valor) => setFiltros(prev => ({ ...prev, [campo]: valor }));
+  const limpiarFiltros = () => { setFiltros(FILTROS_INICIALES); setSearch(''); };
 
   useEffect(() => {
     getAllUsers()
@@ -69,20 +112,73 @@ export function AdminPanel() {
     return { total, beneficiarios, voluntarios, menores, docsPendientes, eventos };
   }, [users]);
 
+  /**
+   * Las opciones se derivan de los datos, no del catálogo fijo de la app,
+   * porque la base tiene valores heredados que el catálogo ya no lista
+   * (por ejemplo "Norte" además de "Norte/UNI"). Si se armaran del catálogo,
+   * esos participantes quedarían inalcanzables desde el filtro.
+   */
+  const opciones = useMemo(() => {
+    const distintos = campo => {
+      const vals = new Set();
+      let hayVacios = false;
+      users.forEach(u => {
+        const v = (u[campo] || '').trim();
+        if (v) vals.add(v); else hayVacios = true;
+      });
+      return {
+        valores: [...vals].sort((a, b) => a.localeCompare(b, 'es')),
+        hayVacios,
+      };
+    };
+    return {
+      programa: distintos('programa'),
+      distrito: distintos('distrito'),
+      tipo: distintos('tipoParticipante'),
+      status: distintos('status'),
+    };
+  }, [users]);
+
+  const filtrosActivos = useMemo(
+    () => Object.values(filtros).filter(Boolean).length + (search.trim() ? 1 : 0),
+    [filtros, search],
+  );
+
   const filtered = useMemo(() => {
-    if (!search.trim()) return users;
-    const q = search.toLowerCase();
+    const q = search.trim().toLowerCase();
     return users.filter(u => {
-      const name = `${u.nombre || ''} ${u.apellidoPaterno || ''} ${u.apellidoMaterno || ''}`.toLowerCase();
-      return (
-        name.includes(q) ||
-        (u.curp || '').toLowerCase().includes(q) ||
-        (u.programa || '').toLowerCase().includes(q) ||
-        (u.municipio || '').toLowerCase().includes(q) ||
-        (u.distrito || '').toLowerCase().includes(q)
-      );
+      if (q) {
+        const name = `${u.nombre || ''} ${u.apellidoPaterno || ''} ${u.apellidoMaterno || ''}`.toLowerCase();
+        const coincide = (
+          name.includes(q) ||
+          (u.curp || '').toLowerCase().includes(q) ||
+          (u.programa || '').toLowerCase().includes(q) ||
+          (u.municipio || '').toLowerCase().includes(q) ||
+          (u.distrito || '').toLowerCase().includes(q)
+        );
+        if (!coincide) return false;
+      }
+
+      if (!coincideCampo(u.programa, filtros.programa)) return false;
+      if (!coincideCampo(u.distrito, filtros.distrito)) return false;
+      if (!coincideCampo(u.tipoParticipante, filtros.tipo)) return false;
+      if (!coincideCampo(u.status, filtros.status)) return false;
+
+      if (filtros.edad) {
+        const menor = isMinor(u.fechaNacimiento);
+        if (filtros.edad === 'menores' && !menor) return false;
+        if (filtros.edad === 'mayores' && menor) return false;
+      }
+
+      if (filtros.docs) {
+        const pendientes = !u.docTerminos || !u.docCartaResponsiva || !u.docCapacitacionPASI;
+        if (filtros.docs === 'pendientes' && !pendientes) return false;
+        if (filtros.docs === 'completos' && pendientes) return false;
+      }
+
+      return true;
     });
-  }, [users, search]);
+  }, [users, search, filtros]);
 
   return (
     <AdminLayout
@@ -110,20 +206,70 @@ export function AdminPanel() {
 
           {/* Search */}
           <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 1px 4px rgba(0,0,0,0.07)', overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              <input
-                type="search"
-                placeholder="Buscar por nombre, CURP, programa, municipio, distrito..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{
-                  flex: 1, minWidth: '220px', padding: '9px 14px', borderRadius: '8px',
-                  border: '1px solid #E5E7EB', fontSize: '0.88rem', outline: 'none',
-                }}
-              />
-              <span style={{ color: '#6B7280', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
-                {filtered.length} resultado{filtered.length !== 1 ? 's' : ''}
-              </span>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #F3F4F6', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <input
+                  type="search"
+                  placeholder="Buscar por nombre, CURP, programa, municipio, distrito..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  style={{
+                    flex: 1, minWidth: '220px', padding: '9px 14px', borderRadius: '8px',
+                    border: '1px solid #E5E7EB', fontSize: '0.88rem', outline: 'none',
+                  }}
+                />
+                <span style={{ color: '#6B7280', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
+                  <strong style={{ color: '#111827' }}>{filtered.length}</strong> de {users.length}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                <SelectFiltro etiqueta="Programa" valor={filtros.programa} onChange={e => setFiltro('programa', e.target.value)}>
+                  <option value="">Todos</option>
+                  {opciones.programa.valores.map(v => <option key={v} value={v}>{v}</option>)}
+                  {opciones.programa.hayVacios && <option value={SIN_ASIGNAR}>(sin asignar)</option>}
+                </SelectFiltro>
+
+                <SelectFiltro etiqueta="Distrito" valor={filtros.distrito} onChange={e => setFiltro('distrito', e.target.value)}>
+                  <option value="">Todos</option>
+                  {opciones.distrito.valores.map(v => <option key={v} value={v}>{v}</option>)}
+                  {opciones.distrito.hayVacios && <option value={SIN_ASIGNAR}>(sin asignar)</option>}
+                </SelectFiltro>
+
+                <SelectFiltro etiqueta="Tipo" valor={filtros.tipo} onChange={e => setFiltro('tipo', e.target.value)}>
+                  <option value="">Todos</option>
+                  {opciones.tipo.valores.map(v => <option key={v} value={v}>{v}</option>)}
+                  {opciones.tipo.hayVacios && <option value={SIN_ASIGNAR}>(sin asignar)</option>}
+                </SelectFiltro>
+
+                <SelectFiltro etiqueta="Status" valor={filtros.status} onChange={e => setFiltro('status', e.target.value)}>
+                  <option value="">Todos</option>
+                  {opciones.status.valores.map(v => <option key={v} value={v}>{v}</option>)}
+                  {opciones.status.hayVacios && <option value={SIN_ASIGNAR}>(sin asignar)</option>}
+                </SelectFiltro>
+
+                <SelectFiltro etiqueta="Edad" valor={filtros.edad} onChange={e => setFiltro('edad', e.target.value)}>
+                  <option value="">Todas</option>
+                  <option value="menores">Menores de edad</option>
+                  <option value="mayores">Mayores de edad</option>
+                </SelectFiltro>
+
+                <SelectFiltro etiqueta="Documentos" valor={filtros.docs} onChange={e => setFiltro('docs', e.target.value)}>
+                  <option value="">Todos</option>
+                  <option value="pendientes">Con pendientes</option>
+                  <option value="completos">Completos</option>
+                </SelectFiltro>
+
+                {filtrosActivos > 0 && (
+                  <Button
+                    variant="ghost"
+                    style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+                    onClick={limpiarFiltros}
+                  >
+                    Limpiar ({filtrosActivos})
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* User list */}
@@ -138,7 +284,10 @@ export function AdminPanel() {
                 </thead>
                 <tbody>
                   {filtered.length === 0 && (
-                    <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#9CA3AF' }}>No se encontraron participantes</td></tr>
+                    <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#9CA3AF' }}>
+                      No se encontraron participantes
+                      {filtrosActivos > 0 && ' con los filtros aplicados'}
+                    </td></tr>
                   )}
                   {filtered.map((u, i) => {
                     const age = calcAge(u.fechaNacimiento);
