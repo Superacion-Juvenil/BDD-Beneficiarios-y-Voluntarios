@@ -89,6 +89,21 @@ function tituloActualizado(iso) {
   });
 }
 
+function tieneDocsPendientes(u) {
+  return !u.docTerminos || !u.docCartaResponsiva || !u.docCapacitacionPASI;
+}
+
+function calcularStats(lista) {
+  return {
+    total: lista.length,
+    beneficiarios: lista.filter(u => u.tipoParticipante === 'Beneficiario').length,
+    voluntarios: lista.filter(u => u.tipoParticipante === 'Voluntario').length,
+    menores: lista.filter(u => isMinor(u.fechaNacimiento)).length,
+    docsPendientes: lista.filter(tieneDocsPendientes).length,
+    eventos: lista.reduce((sum, u) => sum + (u.eventos || []).length, 0),
+  };
+}
+
 function StatCard({ label, value, color = BRAND_COLOR }) {
   return (
     <div style={{
@@ -120,15 +135,9 @@ export function AdminPanel() {
       .finally(() => setLoading(false));
   }, []);
 
-  const stats = useMemo(() => {
-    const total = users.length;
-    const beneficiarios = users.filter(u => u.tipoParticipante === 'Beneficiario').length;
-    const voluntarios = users.filter(u => u.tipoParticipante === 'Voluntario').length;
-    const menores = users.filter(u => isMinor(u.fechaNacimiento)).length;
-    const docsPendientes = users.filter(u => !u.docTerminos || !u.docCartaResponsiva || !u.docCapacitacionPASI).length;
-    const eventos = users.reduce((sum, u) => sum + (u.eventos || []).length, 0);
-    return { total, beneficiarios, voluntarios, menores, docsPendientes, eventos };
-  }, [users]);
+  // Totales de toda la base. Alimentan los badges de la barra lateral, que
+  // son navegación y no deben moverse con los filtros de esta pantalla.
+  const totales = useMemo(() => calcularStats(users), [users]);
 
   /**
    * Las opciones se derivan de los datos, no del catálogo fijo de la app,
@@ -189,7 +198,7 @@ export function AdminPanel() {
       }
 
       if (filtros.docs) {
-        const pendientes = !u.docTerminos || !u.docCartaResponsiva || !u.docCapacitacionPASI;
+        const pendientes = tieneDocsPendientes(u);
         if (filtros.docs === 'pendientes' && !pendientes) return false;
         if (filtros.docs === 'completos' && pendientes) return false;
       }
@@ -198,10 +207,13 @@ export function AdminPanel() {
     });
   }, [users, search, filtros]);
 
+  // Indicadores de lo que está en pantalla: se recalculan con cada filtro.
+  const stats = useMemo(() => calcularStats(filtered), [filtered]);
+
   return (
     <AdminLayout
-      usersBadge={loading ? null : stats.total}
-      eventsBadge={loading ? null : stats.eventos}
+      usersBadge={loading ? null : totales.total}
+      eventsBadge={loading ? null : totales.eventos}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
         <h1 style={{ margin: 0, fontSize: '1.4rem', color: '#111827' }}>Panel de Administración</h1>
@@ -212,14 +224,35 @@ export function AdminPanel() {
 
       {loading ? <Spinner /> : (
         <>
-          {/* Stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '12px', marginBottom: '24px' }}>
-            <StatCard label="Total participantes" value={stats.total} />
-            <StatCard label="Beneficiarios" value={stats.beneficiarios} color="#059669" />
-            <StatCard label="Voluntarios" value={stats.voluntarios} color="#7C3AED" />
-            <StatCard label="Menores de edad" value={stats.menores} color="#D97706" />
-            <StatCard label="Docs pendientes" value={stats.docsPendientes} color="#DC2626" />
-            <StatCard label="Eventos" value={stats.eventos} color="#7c3aed" />
+          {/* Stats — reflejan el resultado del filtrado, no toda la base */}
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '12px' }}>
+              <StatCard
+                label={filtrosActivos > 0 ? 'Participantes filtrados' : 'Total participantes'}
+                value={stats.total}
+              />
+              <StatCard label="Beneficiarios" value={stats.beneficiarios} color="#059669" />
+              <StatCard label="Voluntarios" value={stats.voluntarios} color="#7C3AED" />
+              <StatCard label="Menores de edad" value={stats.menores} color="#D97706" />
+              <StatCard label="Docs pendientes" value={stats.docsPendientes} color="#DC2626" />
+              <StatCard label="Eventos" value={stats.eventos} color="#7c3aed" />
+            </div>
+            {filtrosActivos > 0 && (
+              <p style={{ margin: '10px 0 0', fontSize: '0.78rem', color: '#6B7280' }}>
+                Los indicadores corresponden a los {stats.total} participantes filtrados,
+                de {totales.total} en total.{' '}
+                <button
+                  type="button"
+                  onClick={limpiarFiltros}
+                  style={{
+                    background: 'none', border: 'none', padding: 0, font: 'inherit',
+                    color: BRAND_COLOR, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline',
+                  }}
+                >
+                  Ver todos
+                </button>
+              </p>
+            )}
           </div>
 
           {/* Search */}
@@ -310,7 +343,7 @@ export function AdminPanel() {
                   {filtered.map((u, i) => {
                     const age = calcAge(u.fechaNacimiento);
                     const minor = isMinor(u.fechaNacimiento);
-                    const docsPending = !u.docTerminos || !u.docCartaResponsiva || !u.docCapacitacionPASI;
+                    const docsPending = tieneDocsPendientes(u);
                     const name = [u.nombre, u.apellidoPaterno, u.apellidoMaterno].filter(Boolean).join(' ') || '—';
                     const initials = [u.nombre?.[0], u.apellidoPaterno?.[0]].filter(Boolean).join('').toUpperCase() || '?';
                     return (
