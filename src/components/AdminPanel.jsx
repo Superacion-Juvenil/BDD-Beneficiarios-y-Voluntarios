@@ -25,6 +25,24 @@ function coincideCampo(valor, filtro) {
   return filtro === SIN_ASIGNAR ? v === '' : v === filtro;
 }
 
+/**
+ * Zona de un distrito, para agrupar en el filtro las variantes que conviven
+ * en la base. El catálogo actual nombra las zonas como "Zona/Campus"
+ * ("Norte/UNI"), pero hay registros previos con sólo la zona ("Norte"): son
+ * el mismo distrito escrito de dos formas. Tomando la parte anterior a la
+ * diagonal, una sola opción del filtro alcanza a ambos.
+ *
+ * Sólo aplica al filtro de distrito: la tabla sigue mostrando el valor tal
+ * como está guardado, y la base no se modifica. La regla no se generaliza a
+ * otros campos porque ahí la diagonal no significa lo mismo (el programa
+ * heredado "MJ Sec/Prepa" no es una zona "MJ Sec").
+ */
+function zonaDistrito(distrito) {
+  const v = (distrito || '').trim();
+  if (!v) return '';
+  return v.split('/')[0].trim();
+}
+
 function SelectFiltro({ etiqueta, valor, onChange, children }) {
   const activo = Boolean(valor);
   return (
@@ -119,11 +137,11 @@ export function AdminPanel() {
    * esos participantes quedarían inalcanzables desde el filtro.
    */
   const opciones = useMemo(() => {
-    const distintos = campo => {
+    const distintos = (campo, normaliza = v => v) => {
       const vals = new Set();
       let hayVacios = false;
       users.forEach(u => {
-        const v = (u[campo] || '').trim();
+        const v = normaliza((u[campo] || '').trim()).trim();
         if (v) vals.add(v); else hayVacios = true;
       });
       return {
@@ -133,7 +151,7 @@ export function AdminPanel() {
     };
     return {
       programa: distintos('programa'),
-      distrito: distintos('distrito'),
+      distrito: distintos('distrito', zonaDistrito),
       tipo: distintos('tipoParticipante'),
       status: distintos('status'),
     };
@@ -160,7 +178,7 @@ export function AdminPanel() {
       }
 
       if (!coincideCampo(u.programa, filtros.programa)) return false;
-      if (!coincideCampo(u.distrito, filtros.distrito)) return false;
+      if (!coincideCampo(zonaDistrito(u.distrito), filtros.distrito)) return false;
       if (!coincideCampo(u.tipoParticipante, filtros.tipo)) return false;
       if (!coincideCampo(u.status, filtros.status)) return false;
 
