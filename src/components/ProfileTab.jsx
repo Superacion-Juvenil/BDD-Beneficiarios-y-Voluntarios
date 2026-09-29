@@ -182,21 +182,25 @@ export function ProfileTab({ data, onSave, isAdmin, readOnlyCURP = true }) {
               <Input type="email" value={form.correoMadre || ''} onChange={e => set('correoMadre', e.target.value)} />
             </Field>
           </div>
-
-          <div style={{ fontWeight: 600, fontSize: '0.82rem', color: '#374151', marginTop: '6px' }}>Información adicional</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-            <Field label="Alergias">
-              <Input value={form.alergias || ''} onChange={e => set('alergias', e.target.value)} />
-            </Field>
-            <Field label="Talla de playera">
-              <Input value={form.tallaPlayera || ''} onChange={e => set('tallaPlayera', e.target.value)} />
-            </Field>
-            <Field label="Seguro médico / emergencia">
-              <Input value={form.seguroMedico || ''} onChange={e => set('seguroMedico', e.target.value)} />
-            </Field>
-          </div>
         </>
       )}
+
+      {/* Datos de salud y logística. Aplican a cualquier edad: antes vivían
+          dentro del bloque de menores, así que un participante mayor de edad
+          no tenía dónde capturarlos ni el admin dónde consultarlos, aunque las
+          columnas ya existían en profiles. */}
+      <SectionTitle>Información adicional</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+        <Field label="Alergias">
+          <Input value={form.alergias || ''} onChange={e => set('alergias', e.target.value)} />
+        </Field>
+        <Field label="Talla de playera">
+          <Input value={form.tallaPlayera || ''} onChange={e => set('tallaPlayera', e.target.value)} />
+        </Field>
+        <Field label="Seguro médico / emergencia">
+          <Input value={form.seguroMedico || ''} onChange={e => set('seguroMedico', e.target.value)} />
+        </Field>
+      </div>
 
       <div style={{ marginTop: '16px' }}>
         <Button type="submit" disabled={saving}>

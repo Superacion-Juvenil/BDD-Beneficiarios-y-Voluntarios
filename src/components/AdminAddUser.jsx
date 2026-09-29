@@ -295,20 +295,25 @@ export function AdminAddUser() {
                 </Field>
               </div>
 
-              <div style={{ fontWeight: 600, fontSize: '0.82rem', color: '#374151', marginTop: '6px' }}>Información adicional</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-                <Field label="Alergias">
-                  <Input value={form.alergias} onChange={e => set('alergias', e.target.value)} />
-                </Field>
-                <Field label="Talla de playera">
-                  <Input value={form.tallaPlayera} onChange={e => set('tallaPlayera', e.target.value)} />
-                </Field>
-                <Field label="Seguro médico / emergencia">
-                  <Input value={form.seguroMedico} onChange={e => set('seguroMedico', e.target.value)} />
-                </Field>
-              </div>
             </>
           )}
+
+          {/* Datos de salud y logística. Aplican a cualquier edad: antes vivían
+              dentro del bloque de menores, así que al dar de alta a un mayor de
+              edad no había dónde capturarlos y había que crearlo y luego
+              editarlo. Mismo criterio que en ProfileTab. */}
+          <SectionTitle>Información adicional</SectionTitle>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+            <Field label="Alergias">
+              <Input value={form.alergias} onChange={e => set('alergias', e.target.value)} />
+            </Field>
+            <Field label="Talla de playera">
+              <Input value={form.tallaPlayera} onChange={e => set('tallaPlayera', e.target.value)} />
+            </Field>
+            <Field label="Seguro médico / emergencia">
+              <Input value={form.seguroMedico} onChange={e => set('seguroMedico', e.target.value)} />
+            </Field>
+          </div>
 
           <SectionTitle>Programa</SectionTitle>
           <p style={{ margin: '-4px 0 4px', fontSize: '0.8rem', color: '#6B7280', lineHeight: 1.45 }}>
