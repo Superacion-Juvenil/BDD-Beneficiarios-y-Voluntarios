@@ -167,16 +167,6 @@ export function reportePorTipo(users, tipo) {
 }
 
 // ─── Report: Estadísticas globales ──────────────────────
-function countMap(items, getKey) {
-  const map = new Map();
-  for (const it of items) {
-    const k = (getKey(it) || '').toString().trim();
-    if (!k) continue;
-    map.set(k, (map.get(k) || 0) + 1);
-  }
-  return [...map.entries()].sort((a, b) => b[1] - a[1]);
-}
-
 function sexOf(u) {
   const s = (u.sexo || '').toLowerCase().trim();
   if (s.startsWith('h')) return 'Hombre';
@@ -184,52 +174,116 @@ function sexOf(u) {
   return 'Sin dato';
 }
 
+/** Conteo de un grupo separado por sexo. */
+function porSexo(items) {
+  const c = { Hombre: 0, Mujer: 0, 'Sin dato': 0 };
+  for (const it of items) c[sexOf(it)] += 1;
+  return c;
+}
+
+/**
+ * Agrupa por categoría y separa hombres y mujeres dentro de cada una.
+ * Devuelve las filas ordenadas por total y si alguien quedó sin sexo: la
+ * columna "Sin dato" sólo se dibuja cuando hace falta, porque el sexo se
+ * deriva del CURP y en la práctica siempre viene.
+ */
+function countMapBySex(items, getKey) {
+  const map = new Map();
+  for (const it of items) {
+    const k = (getKey(it) || '').toString().trim();
+    if (!k) continue;
+    if (!map.has(k)) map.set(k, { Hombre: 0, Mujer: 0, 'Sin dato': 0 });
+    map.get(k)[sexOf(it)] += 1;
+  }
+  const filas = [...map.entries()]
+    .map(([clave, c]) => ({ clave, ...c, total: c.Hombre + c.Mujer + c['Sin dato'] }))
+    .sort((a, b) => b.total - a.total || a.clave.localeCompare(b.clave, 'es'));
+  return { filas, haySinDato: filas.some(f => f['Sin dato'] > 0) };
+}
+
+/** Encabezados y anchos según se necesite o no la columna "Sin dato". */
+function columnasSexo(titulo, haySinDato) {
+  return haySinDato
+    ? { headers: [titulo, 'Hombres', 'Mujeres', 'Sin dato', 'Total'], widths: [30, 10, 10, 10, 10] }
+    : { headers: [titulo, 'Hombres', 'Mujeres', 'Total'], widths: [30, 10, 10, 10] };
+}
+
+function filaSexo(etiqueta, c, haySinDato) {
+  const total = c.Hombre + c.Mujer + c['Sin dato'];
+  return haySinDato
+    ? [etiqueta, c.Hombre, c.Mujer, c['Sin dato'], total]
+    : [etiqueta, c.Hombre, c.Mujer, total];
+}
+
+function sheetCountBySex(titulo, { filas, haySinDato }) {
+  const { headers, widths } = columnasSexo(titulo, haySinDato);
+  const aoa = [headers, ...filas.map(f => filaSexo(f.clave, f, haySinDato))];
+
+  // Fila de totales, para que la hoja cuadre sola.
+  const suma = k => filas.reduce((s, f) => s + f[k], 0);
+  aoa.push(filaSexo('Total', {
+    Hombre: suma('Hombre'), Mujer: suma('Mujer'), 'Sin dato': suma('Sin dato'),
+  }, haySinDato));
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  styleHeader(ws, widths);
+  ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+  return ws;
+}
+
+/**
+ * Conteo simple, sin abrir por sexo. Lo usa la hoja "Por sexo", donde cruzar
+ * sexo contra sí mismo daría una matriz diagonal que no dice nada.
+ */
+function sheetCountSimple(titulo, conteo) {
+  const filas = [['Hombres', conteo.Hombre], ['Mujeres', conteo.Mujer]];
+  if (conteo['Sin dato'] > 0) filas.push(['Sin dato', conteo['Sin dato']]);
+  const total = conteo.Hombre + conteo.Mujer + conteo['Sin dato'];
+  const ws = XLSX.utils.aoa_to_sheet([[titulo, 'Cantidad'], ...filas, ['Total', total]]);
+  styleHeader(ws, [30, 12]);
+  ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+  return ws;
+}
+
 export function reporteEstadisticas(users) {
   const wb = XLSX.utils.book_new();
-  const total = users.length;
-  const benef = users.filter(u => u.tipoParticipante === 'Beneficiario').length;
-  const vol = users.filter(u => u.tipoParticipante === 'Voluntario').length;
-  const activos = users.filter(u => (u.status || 'Activo') === 'Activo').length;
-  const menores = users.filter(u => isMinor(u.fechaNacimiento)).length;
-  const docsCompletos = users.filter(u => u.docTerminos && u.docCartaResponsiva && u.docCapacitacionPASI).length;
-  const sinRoble = users.filter(u => !u.docCapacitacionPASI).length;
-  const H = users.filter(u => sexOf(u) === 'Hombre').length;
-  const M = users.filter(u => sexOf(u) === 'Mujer').length;
+  const beneficiarios = users.filter(u => u.tipoParticipante === 'Beneficiario');
+  const voluntarios = users.filter(u => u.tipoParticipante === 'Voluntario');
+
+  // Cada indicador del resumen también se abre en hombres y mujeres.
+  const indicadores = [
+    ['Total participantes', users],
+    ['Beneficiarios', beneficiarios],
+    ['Voluntarios', voluntarios],
+    ['Activos', users.filter(u => (u.status || 'Activo') === 'Activo')],
+    ['Menores de edad', users.filter(u => isMinor(u.fechaNacimiento))],
+    ['Mayores de edad', users.filter(u => !isMinor(u.fechaNacimiento))],
+    ['Docs completos', users.filter(u => u.docTerminos && u.docCartaResponsiva && u.docCapacitacionPASI)],
+    ['Sin capacitación Fundación Roble', users.filter(u => !u.docCapacitacionPASI)],
+  ].map(([etiqueta, lista]) => [etiqueta, porSexo(lista)]);
+
+  const haySinDato = indicadores.some(([, c]) => c['Sin dato'] > 0);
+  const { headers, widths } = columnasSexo('Indicador', haySinDato);
 
   const resumen = [
     ['Estadísticas globales', ''],
     ['Fecha del reporte', today()],
     [],
-    ['Indicador', 'Valor'],
-    ['Total participantes', total],
-    ['Beneficiarios', benef],
-    ['Voluntarios', vol],
-    ['Activos', activos],
-    ['Hombres', H],
-    ['Mujeres', M],
-    ['Menores de edad', menores],
-    ['Docs completos', docsCompletos],
-    ['Sin capacitación Fundación Roble', sinRoble],
+    headers,
+    ...indicadores.map(([etiqueta, c]) => filaSexo(etiqueta, c, haySinDato)),
   ];
   const wsResumen = XLSX.utils.aoa_to_sheet(resumen);
-  styleHeader(wsResumen, [36, 12]);
+  styleHeader(wsResumen, [36, ...widths.slice(1)]);
   addSheet(wb, 'Resumen', wsResumen);
 
-  function sheetCount(title, entries) {
-    const aoa = [[title, 'Cantidad'], ...entries];
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    styleHeader(ws, [30, 12]);
-    return ws;
-  }
-
-  addSheet(wb, 'Por programa', sheetCount('Programa', countMap(users, u => u.programa)));
-  addSheet(wb, 'Por distrito', sheetCount('Distrito', countMap(users, u => u.distrito)));
-  addSheet(wb, 'Por municipio', sheetCount('Municipio', countMap(users, u => u.municipio)));
-  addSheet(wb, 'Por escuela', sheetCount('Escuela', countMap(users.filter(u => u.tipoParticipante === 'Beneficiario'), u => u.escuela)));
-  addSheet(wb, 'Por carrera', sheetCount('Carrera', countMap(users.filter(u => u.tipoParticipante === 'Beneficiario'), u => u.carrera)));
-  addSheet(wb, 'Por ocupación', sheetCount('Ocupación', countMap(users.filter(u => u.tipoParticipante === 'Voluntario'), u => u.ocupacion)));
-  addSheet(wb, 'Por grado escolar', sheetCount('Grado', countMap(users, u => u.gradoEscolar)));
-  addSheet(wb, 'Por sexo', sheetCount('Sexo', countMap(users, u => sexOf(u))));
+  addSheet(wb, 'Por programa', sheetCountBySex('Programa', countMapBySex(users, u => u.programa)));
+  addSheet(wb, 'Por distrito', sheetCountBySex('Distrito', countMapBySex(users, u => u.distrito)));
+  addSheet(wb, 'Por municipio', sheetCountBySex('Municipio', countMapBySex(users, u => u.municipio)));
+  addSheet(wb, 'Por escuela', sheetCountBySex('Escuela', countMapBySex(beneficiarios, u => u.escuela)));
+  addSheet(wb, 'Por carrera', sheetCountBySex('Carrera', countMapBySex(beneficiarios, u => u.carrera)));
+  addSheet(wb, 'Por ocupación', sheetCountBySex('Ocupación', countMapBySex(voluntarios, u => u.ocupacion)));
+  addSheet(wb, 'Por grado escolar', sheetCountBySex('Grado', countMapBySex(users, u => u.gradoEscolar)));
+  addSheet(wb, 'Por sexo', sheetCountSimple('Sexo', porSexo(users)));
 
   download(wb, `Estadisticas_${today()}.xlsx`);
 }
