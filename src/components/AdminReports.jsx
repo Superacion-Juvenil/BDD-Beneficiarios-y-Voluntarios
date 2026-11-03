@@ -108,7 +108,7 @@ export function AdminReports() {
           <ReportCard
             icon="📊"
             title="Estadísticas globales"
-            description="Resumen con conteos por programa, distrito, municipio, escuela, carrera y sexo."
+            description="Conteos por programa, distrito, municipio, escuela, carrera, ocupación y grado, cada uno separado en hombres y mujeres."
             count={users.length}
             actionLabel="Descargar Excel"
             color="#0891B2"
