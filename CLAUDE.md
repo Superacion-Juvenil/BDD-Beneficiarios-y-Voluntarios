@@ -39,10 +39,12 @@ src/
 ├── hooks/
 │   ├── useAuth.jsx        # contexto de sesión (JSX → .jsx)
 │   └── useUser.js         # lectura/escritura de perfiles en Supabase
+├── evaluaciones.js        # catálogo de las 15 evaluaciones (E1–E5) por nivel
 └── lib/
     ├── supabase.js        # init Supabase (cliente principal + signupClient)
     ├── curp.js            # parser CURP + cálculo de edad
     ├── internalEmail.js   # dominio del correo interno derivado del CURP
+    ├── claveSeguimiento.js # clave de seguimiento = 4 chars del CURP + programa
     └── validators.js      # validaciones de inputs
 scripts/migrate.js         # importación masiva desde Excel
 supabase/schema.sql        # tabla profiles + RLS + trigger
@@ -64,6 +66,9 @@ supabase/schema.sql        # tabla profiles + RLS + trigger
 - **No commitear** `.env`, ni archivos en `/data/` (ya en `.gitignore`). La `service_role` key de Supabase **nunca** debe exponerse al frontend.
 - `vercel.json` define rewrite SPA y cabeceras de seguridad — Vercel autodetecta Vite, no se necesita config adicional.
 - `xlsx` tiene CVE conocido sin fix upstream (prototype pollution / ReDoS); se usa solo en el script de migración del lado servidor, no en el frontend.
+- Las evaluaciones viven en `src/evaluaciones.js`. Cada una declara `applies`: `nivel` (secundaria / prepa / universitarios, derivado del programa vía `NIVELES`), `tipo` (Beneficiario / Voluntario) y, para la E4B, `audiencia: 'coordinador'` —esa la llena el admin desde la ficha del usuario, no el participante—. `programasExtra` suma programas que no caen en el nivel: VEM lo usa para recibir sólo la evaluación de evento de universitarios, ya que no tiene instrumentos propios. Las preguntas tipo `grid` comparten ids de renglón (`f1`…`f12`) entre la evaluación de ingreso y la de cierre del mismo nivel para poder comparar antes/después; **no cambiar esos ids**.
+- La clave de seguimiento la asigna la plataforma (`src/lib/claveSeguimiento.js`): 4 primeros caracteres del CURP + `-` + programa. Se congela dentro de cada respuesta (`evaluaciones[evalId].clave`) para que siga siendo válida aunque la persona cambie de programa.
+- Las respuestas guardadas bajo ids de evaluaciones que ya no están en el catálogo no se borran: aparecen como "Histórico" en la ficha del usuario.
 - El esquema SQL define un trigger `trg_enforce_profile_safe_update` que impide que un usuario no-admin modifique campos sensibles aunque la RLS le permita actualizar su fila: identidad (`id`, `curp`, `fechaNacimiento`, `sexo`, `createdAt`) y `status`. El participante **sí** elige su `tipoParticipante`, `programa` y `distrito`. Si se cambia esa lista, actualizar también `PROTECTED_FIELDS` en `ProgramaTab.jsx`.
 
 ## Documentación

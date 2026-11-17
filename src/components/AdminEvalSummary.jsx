@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { EVALUACIONES, CATEGORIAS, evaluacionesParaUsuario } from '../evaluaciones';
+import { EVALUACIONES, CATEGORIAS, todasLasEvaluaciones, totalCampos } from '../evaluaciones';
+import { claveSeguimiento } from '../lib/claveSeguimiento';
+import { EvalRespuestas } from './EvalRespuestas';
 import { getAllUsers } from '../hooks/useUser';
 import { Spinner } from './ui/Spinner';
 import { Alert } from './ui/Alert';
@@ -41,7 +43,7 @@ export function AdminEvalSummary() {
 
   const stats = useMemo(() => {
     return EVALUACIONES.map(ev => {
-      const applies = users.filter(u => evaluacionesParaUsuario(u).some(e => e.id === ev.id));
+      const applies = users.filter(u => todasLasEvaluaciones(u).some(e => e.id === ev.id));
       const completed = applies.filter(u => (u.evaluaciones || {})[ev.id]?.completedAt);
       const pct = applies.length > 0 ? Math.round((completed.length / applies.length) * 100) : 0;
       return { ev, applies, completed, pct };
@@ -87,7 +89,7 @@ export function AdminEvalSummary() {
                       </span>
                     </div>
                     <p style={{ margin: '2px 0 8px', color: '#6B7280', fontSize: '0.8rem' }}>
-                      {cat.label} · {ev.questions.length} preguntas
+                      {ev.codigo} · {cat.label} · {totalCampos(ev)} respuestas
                     </p>
                     <ProgressBar pct={pct} color={cat.color} />
                   </div>
@@ -114,27 +116,25 @@ export function AdminEvalSummary() {
                   {completed.map(u => {
                     const resp = (u.evaluaciones || {})[ev.id];
                     const name = [u.nombre, u.apellidoPaterno, u.apellidoMaterno].filter(Boolean).join(' ') || u.curp || '—';
+                    const clave = resp?.clave || claveSeguimiento(u);
                     return (
                       <details key={u.uid} style={{ marginTop: '12px', borderBottom: '1px solid #F3F4F6', paddingBottom: '12px' }}>
                         <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: '0.86rem', color: '#111827', listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span>👤 {name}</span>
+                          <span>
+                            👤 {name}
+                            {clave && (
+                              <code style={{
+                                marginLeft: '8px', fontSize: '0.74rem', fontWeight: 600, color: '#6B7280',
+                                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                              }}>{clave}</code>
+                            )}
+                          </span>
                           <span style={{ color: '#6B7280', fontWeight: 400, fontSize: '0.78rem' }}>
                             {formatDate(resp?.completedAt)}
                           </span>
                         </summary>
                         <div style={{ paddingTop: '10px', paddingLeft: '8px' }}>
-                          {ev.questions.map((q, idx) => {
-                            const ans = resp?.answers?.[q.id];
-                            const display = Array.isArray(ans) ? ans.join(', ') : (ans !== null && ans !== undefined ? String(ans) : '—');
-                            return (
-                              <div key={q.id} style={{ marginBottom: '8px' }}>
-                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#6B7280', fontWeight: 600 }}>
-                                  {idx + 1}. {q.question}
-                                </p>
-                                <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: '#111827' }}>{display || '—'}</p>
-                              </div>
-                            );
-                          })}
+                          <EvalRespuestas ev={ev} resp={resp} />
                         </div>
                       </details>
                     );

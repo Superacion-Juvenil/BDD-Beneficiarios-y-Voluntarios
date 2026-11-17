@@ -1,4 +1,5 @@
-import { EVALUACIONES, CATEGORIAS, evaluacionesParaUsuario } from '../evaluaciones';
+import { CATEGORIAS, evaluacionesParaUsuario, totalCampos } from '../evaluaciones';
+import { claveSeguimiento, faltaParaClave } from '../lib/claveSeguimiento';
 
 const BRAND_COLOR = '#1A56A4';
 
@@ -24,6 +25,8 @@ function CategoryBadge({ category }) {
 export function EvaluacionesList({ userData, onOpen }) {
   const evalList = evaluacionesParaUsuario(userData);
   const evals = userData.evaluaciones || {};
+  const clave = claveSeguimiento(userData);
+  const falta = faltaParaClave(userData);
 
   return (
     <div>
@@ -42,9 +45,30 @@ export function EvaluacionesList({ userData, onOpen }) {
         </div>
       </div>
 
+      {/* Clave de seguimiento asignada por la plataforma */}
+      <div style={{
+        background: clave ? '#F3F4F6' : '#FEF9C3',
+        border: `1px solid ${clave ? '#E5E7EB' : '#FDE68A'}`,
+        borderRadius: '10px', padding: '12px 16px', marginBottom: '20px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.8rem', color: '#6B7280', fontWeight: 600 }}>Tu clave de seguimiento</span>
+          {clave
+            ? <code style={{
+                fontSize: '0.95rem', fontWeight: 700, color: '#111827', letterSpacing: '0.04em',
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+              }}>{clave}</code>
+            : <span style={{ fontSize: '0.83rem', color: '#854D0E' }}>{falta}</span>}
+        </div>
+        <p style={{ margin: '6px 0 0', fontSize: '0.78rem', color: '#6B7280' }}>
+          La asigna la plataforma y se guarda sola con cada respuesta: no tienes que escribirla.
+        </p>
+      </div>
+
       {evalList.length === 0 && (
         <p style={{ color: '#6B7280', textAlign: 'center', padding: '32px 0' }}>
           No hay evaluaciones disponibles para tu perfil en este momento.
+          {!userData.programa && ' Elige tu programa en la pestaña "Programa" para que aparezcan las de tu nivel.'}
         </p>
       )}
 
@@ -82,6 +106,7 @@ export function EvaluacionesList({ userData, onOpen }) {
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
                   <span style={{ fontWeight: 700, color: '#111827', fontSize: '0.95rem' }}>{ev.title}</span>
+                  <span style={{ color: '#9CA3AF', fontSize: '0.75rem', fontWeight: 600 }}>{ev.codigo}</span>
                   {done ? (
                     <span style={{
                       display: 'inline-flex', alignItems: 'center', gap: '4px',
@@ -97,7 +122,7 @@ export function EvaluacionesList({ userData, onOpen }) {
                 </div>
                 <p style={{ margin: '0 0 6px', color: '#6B7280', fontSize: '0.83rem', lineHeight: 1.4 }}>{ev.description}</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', fontSize: '0.78rem', color: '#9CA3AF' }}>
-                  <span>📋 {ev.questions.length} preguntas</span>
+                  <span>📋 {totalCampos(ev)} respuestas</span>
                   <span>⏱ ~{ev.estimatedMinutes} min</span>
                   <CategoryBadge category={ev.category} />
                   {done && <span>Completada el {formatDate(resp.completedAt)} · Toca para ver o editar</span>}
