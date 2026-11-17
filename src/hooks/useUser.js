@@ -6,6 +6,18 @@ function withUid(row) {
   return { uid: row.id, ...row };
 }
 
+/**
+ * Entrada que se guarda en profiles.evaluaciones para una evaluación.
+ * `clave` es la clave de seguimiento vigente al momento de responder: se
+ * congela aquí para que la respuesta siga identificable aunque la persona
+ * cambie de programa después.
+ */
+function entradaEvaluacion(answers, clave) {
+  const entrada = { completedAt: new Date().toISOString(), answers };
+  if (clave) entrada.clave = clave;
+  return entrada;
+}
+
 export function useUser(uid) {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -43,11 +55,11 @@ export function useUser(uid) {
     setUserData(prev => ({ ...prev, ...patch }));
   }
 
-  async function saveEvaluacion(targetUid, evalId, answers) {
+  async function saveEvaluacion(targetUid, evalId, answers, clave) {
     const current = (userData?.evaluaciones) || {};
     const updated = {
       ...current,
-      [evalId]: { completedAt: new Date().toISOString(), answers },
+      [evalId]: entradaEvaluacion(answers, clave),
     };
     const patch = { evaluaciones: updated, updatedAt: new Date().toISOString() };
     const { error: err } = await supabase
@@ -102,4 +114,21 @@ export async function createUserDocument(uid, data) {
       updatedAt: now,
     });
   if (error) throw error;
+}
+
+/**
+ * Guarda una evaluación sobre otro usuario (la llena el coordinador).
+ * Devuelve el objeto `evaluaciones` actualizado para refrescar la vista.
+ */
+export async function saveEvaluacionDeUsuario(uid, evalId, answers, clave, evaluacionesActuales) {
+  const updated = {
+    ...(evaluacionesActuales || {}),
+    [evalId]: entradaEvaluacion(answers, clave),
+  };
+  const { error } = await supabase
+    .from('profiles')
+    .update({ evaluaciones: updated, updatedAt: new Date().toISOString() })
+    .eq('id', uid);
+  if (error) throw error;
+  return updated;
 }

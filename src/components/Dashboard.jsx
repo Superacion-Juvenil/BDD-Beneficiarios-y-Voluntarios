@@ -170,7 +170,7 @@ export function Dashboard() {
               data={data}
               openEvalId={openEvalId}
               setOpenEvalId={setOpenEvalId}
-              onSaveEval={(evalId, answers) => saveEvaluacion(user.id, evalId, answers)}
+              onSaveEval={(evalId, answers, clave) => saveEvaluacion(user.id, evalId, answers, clave)}
             />
           )}
         </>

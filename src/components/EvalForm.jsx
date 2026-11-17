@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { EVALUACIONES, CATEGORIAS } from '../evaluaciones';
-import { Alert } from './ui/Alert';
+import { EVALUACIONES, CATEGORIAS, ESCALAS, totalCampos } from '../evaluaciones';
+import { claveSeguimiento, faltaParaClave } from '../lib/claveSeguimiento';
 import { Button } from './ui/Button';
 
 const BRAND_COLOR = '#1A56A4';
@@ -11,18 +11,46 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-function hasAnswer(type, val) {
+function escalaDe(q) {
+  return ESCALAS[q.escala] || ESCALAS.intensidad5;
+}
+
+function valoresDe(esc) {
+  const out = [];
+  for (let n = esc.min; n <= esc.max; n++) out.push(n);
+  return out;
+}
+
+export function etiquetaEscala(esc, valor) {
+  if (!esc || valor === null || valor === undefined) return '';
+  if (!esc.labels) return String(valor);
+  const i = valor - esc.min;
+  return esc.labels[i] ? `${valor} · ${esc.labels[i]}` : String(valor);
+}
+
+function hasAnswer(q, val) {
   if (val === null || val === undefined) return false;
-  if (type === 'multi') return Array.isArray(val) && val.length > 0;
+  if (q.type === 'grid') {
+    return q.rows.every(r => val[r.id] !== null && val[r.id] !== undefined);
+  }
+  if (q.type === 'multi') return Array.isArray(val) && val.length > 0;
   if (typeof val === 'string') return val.trim() !== '';
   return true;
 }
 
+/** Cuántos campos individuales lleva contestados (cada renglón de un grid cuenta). */
 function countAnswered(questions, answers) {
-  return questions.filter(q => hasAnswer(q.type, answers[q.id])).length;
+  return questions.reduce((n, q) => {
+    const val = answers[q.id];
+    if (q.type === 'grid') {
+      const obj = val || {};
+      return n + q.rows.filter(r => obj[r.id] !== null && obj[r.id] !== undefined).length;
+    }
+    return n + (hasAnswer(q, val) ? 1 : 0);
+  }, 0);
 }
 
-/* ── Question renderers ── */
+/* ── Renderers por tipo de pregunta ── */
 
 function TextQuestion({ q, value, onChange }) {
   return (
@@ -146,43 +174,140 @@ function MultiQuestion({ q, value = [], onChange }) {
   );
 }
 
-function ScaleQuestion({ q, value, onChange }) {
+/** Botonera de una escala. Compacta cuando va dentro de un grid. */
+function EscalaBotones({ esc, value, onChange, compact, ariaLabel }) {
+  const valores = valoresDe(esc);
+  const size = compact ? 36 : 44;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }} role="radiogroup" aria-label={q.question}>
-      <span style={{ fontSize: '0.78rem', color: '#9CA3AF' }}>1</span>
-      {[1, 2, 3, 4, 5].map(n => {
+    <div
+      role="radiogroup"
+      aria-label={ariaLabel}
+      style={{ display: 'flex', alignItems: 'flex-start', gap: compact ? '5px' : '8px', flexWrap: 'wrap' }}
+    >
+      {valores.map(n => {
         const sel = value === n;
+        const label = esc.labels ? esc.labels[n - esc.min] : null;
         return (
           <button
             key={n}
             type="button"
             onClick={() => onChange(n)}
             aria-pressed={sel}
-            aria-label={`${n}`}
+            aria-label={label ? `${n}, ${label}` : `${n}`}
+            title={label || undefined}
             style={{
-              width: '44px', height: '44px', borderRadius: '8px',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px',
+              minWidth: `${size}px`, maxWidth: compact ? `${size}px` : '96px',
+              padding: compact ? '0' : '0 2px',
+              border: 'none', background: 'none', cursor: 'pointer',
+            }}
+          >
+            <span style={{
+              width: `${size}px`, height: `${size}px`, borderRadius: '8px',
               border: sel ? `2px solid ${BRAND_COLOR}` : '2px solid #D1D5DB',
               background: sel ? BRAND_COLOR : 'white',
               color: sel ? 'white' : '#374151',
-              fontSize: '1rem', fontWeight: 700, cursor: 'pointer',
-              transition: 'all 0.1s',
-            }}
-          >
-            {n}
+              fontSize: compact ? '0.85rem' : '1rem', fontWeight: 700,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.1s', boxSizing: 'border-box',
+            }}>{n}</span>
+            {label && !compact && (
+              <span style={{
+                fontSize: '0.68rem', lineHeight: 1.2, textAlign: 'center',
+                color: sel ? BRAND_COLOR : '#9CA3AF', fontWeight: sel ? 700 : 400,
+              }}>{label}</span>
+            )}
           </button>
         );
       })}
-      <span style={{ fontSize: '0.78rem', color: '#9CA3AF' }}>5</span>
     </div>
   );
 }
 
-function QuestionCard({ q, idx, answers, onChange, errorId }) {
+function ScaleQuestion({ q, value, onChange }) {
+  const esc = escalaDe(q);
+  return (
+    <div>
+      <EscalaBotones esc={esc} value={value} onChange={onChange} ariaLabel={q.question} />
+      {!esc.labels && (esc.minLabel || esc.maxLabel) && (
+        <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: '#9CA3AF' }}>
+          {esc.min} = {esc.minLabel} · {esc.max} = {esc.maxLabel}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Leyenda "1 Nunca · 2 Rara vez · …" que encabeza un grid. */
+function LeyendaEscala({ esc }) {
+  if (!esc.labels) {
+    return (
+      <p style={{ margin: '0 0 10px', fontSize: '0.75rem', color: '#6B7280' }}>
+        {esc.min} = {esc.minLabel} · {esc.max} = {esc.maxLabel}
+      </p>
+    );
+  }
+  return (
+    <div style={{
+      display: 'flex', flexWrap: 'wrap', gap: '2px 12px',
+      margin: '0 0 10px', fontSize: '0.75rem', color: '#6B7280', lineHeight: 1.5,
+    }}>
+      {esc.labels.map((l, i) => (
+        <span key={l} style={{ whiteSpace: 'nowrap' }}>
+          <strong style={{ color: '#374151' }}>{esc.min + i}</strong> {l}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function GridQuestion({ q, value = {}, onChange, errorRows }) {
+  const esc = escalaDe(q);
+  const val = value || {};
+
+  return (
+    <div>
+      <LeyendaEscala esc={esc} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        {q.rows.map((row, i) => {
+          const falta = errorRows?.has(row.id);
+          return (
+            <div
+              key={row.id}
+              style={{
+                display: 'flex', flexWrap: 'wrap', gap: '6px 12px',
+                alignItems: 'center', justifyContent: 'space-between',
+                padding: '8px 10px', borderRadius: '8px',
+                background: falta ? '#FEF2F2' : (i % 2 === 0 ? '#F9FAFB' : 'white'),
+                border: falta ? '1px solid #FECACA' : '1px solid transparent',
+              }}
+            >
+              <span style={{ fontSize: '0.84rem', color: '#111827', flex: '1 1 240px', lineHeight: 1.35 }}>
+                {row.text}
+              </span>
+              <EscalaBotones
+                esc={esc}
+                value={val[row.id]}
+                onChange={n => onChange({ ...val, [row.id]: n })}
+                compact
+                ariaLabel={row.text}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function QuestionCard({ q, idx, answers, onChange, errorId, errorRows }) {
   const isError = errorId === q.id;
+  const val = answers[q.id];
+
   return (
     <div style={{
       background: 'white', borderRadius: '10px',
-      boxShadow: isError ? `0 0 0 2px #DC2626` : '0 1px 3px rgba(0,0,0,0.08)',
+      boxShadow: isError ? '0 0 0 2px #DC2626' : '0 1px 3px rgba(0,0,0,0.08)',
       padding: '18px 20px', marginBottom: '12px',
     }}>
       <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', alignItems: 'flex-start' }}>
@@ -191,22 +316,30 @@ function QuestionCard({ q, idx, answers, onChange, errorId }) {
           color: 'white', fontWeight: 700, fontSize: '0.8rem',
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '1px',
         }}>{idx + 1}</div>
-        <p style={{ margin: 0, fontWeight: 600, color: '#111827', fontSize: '0.9rem', lineHeight: 1.4 }}>
-          {q.question}
-          {q.required && (
-            <span aria-label="obligatorio" style={{ color: '#DC2626', marginLeft: '4px' }}>*</span>
+        <div>
+          <p style={{ margin: 0, fontWeight: 600, color: '#111827', fontSize: '0.9rem', lineHeight: 1.4 }}>
+            {q.question}
+            {q.required && (
+              <span aria-label="obligatorio" style={{ color: '#DC2626', marginLeft: '4px' }}>*</span>
+            )}
+          </p>
+          {q.help && (
+            <p style={{ margin: '4px 0 0', fontSize: '0.79rem', color: '#6B7280', lineHeight: 1.4 }}>{q.help}</p>
           )}
-        </p>
+        </div>
       </div>
       <div style={{ paddingLeft: '38px' }}>
-        {q.type === 'text' && <TextQuestion q={q} value={answers[q.id]} onChange={v => onChange(q.id, v)} />}
-        {q.type === 'longtext' && <LongtextQuestion q={q} value={answers[q.id]} onChange={v => onChange(q.id, v)} />}
-        {q.type === 'single' && <SingleQuestion q={q} value={answers[q.id]} onChange={v => onChange(q.id, v)} />}
-        {q.type === 'multi' && <MultiQuestion q={q} value={answers[q.id]} onChange={v => onChange(q.id, v)} />}
-        {q.type === 'scale' && <ScaleQuestion q={q} value={answers[q.id]} onChange={v => onChange(q.id, v)} />}
+        {q.type === 'text' && <TextQuestion q={q} value={val} onChange={v => onChange(q.id, v)} />}
+        {q.type === 'longtext' && <LongtextQuestion q={q} value={val} onChange={v => onChange(q.id, v)} />}
+        {q.type === 'single' && <SingleQuestion q={q} value={val} onChange={v => onChange(q.id, v)} />}
+        {q.type === 'multi' && <MultiQuestion q={q} value={val} onChange={v => onChange(q.id, v)} />}
+        {q.type === 'scale' && <ScaleQuestion q={q} value={val} onChange={v => onChange(q.id, v)} />}
+        {q.type === 'grid' && (
+          <GridQuestion q={q} value={val} onChange={v => onChange(q.id, v)} errorRows={isError ? errorRows : null} />
+        )}
         {isError && (
           <p role="alert" style={{ margin: '8px 0 0', fontSize: '0.8rem', color: '#DC2626' }}>
-            Por favor responde esta pregunta.
+            {q.type === 'grid' ? 'Faltan renglones por responder.' : 'Por favor responde esta pregunta.'}
           </p>
         )}
       </div>
@@ -214,15 +347,26 @@ function QuestionCard({ q, idx, answers, onChange, errorId }) {
   );
 }
 
-export function EvalForm({ evalId, userData, onSave, onBack }) {
+/**
+ * Formulario de una evaluación.
+ *
+ * `sujeto` es la persona a la que se refiere la evaluación (de ahí sale la
+ * clave de seguimiento). Normalmente es el mismo `userData`; en la evaluación
+ * del coordinador es el servidor evaluado.
+ */
+export function EvalForm({ evalId, userData, sujeto, onSave, onBack }) {
   const ev = EVALUACIONES.find(e => e.id === evalId);
   const cat = ev ? (CATEGORIAS[ev.category] || {}) : {};
+  const persona = sujeto || userData;
   const existing = (userData.evaluaciones || {})[evalId];
+  const clave = claveSeguimiento(persona);
+  const falta = faltaParaClave(persona);
 
   const [answers, setAnswers] = useState(existing?.answers || {});
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [errorQid, setErrorQid] = useState(null);
+  const [errorRows, setErrorRows] = useState(null);
   const [toast, setToast] = useState('');
   const questionRefs = useRef({});
 
@@ -232,26 +376,37 @@ export function EvalForm({ evalId, userData, onSave, onBack }) {
 
   function setAnswer(qid, val) {
     setAnswers(prev => ({ ...prev, [qid]: val }));
-    if (errorQid === qid) setErrorQid(null);
+    if (errorQid === qid) { setErrorQid(null); setErrorRows(null); }
   }
 
   const answered = countAnswered(ev.questions, answers);
+  const total = totalCampos(ev);
 
   async function handleSave() {
     for (const q of ev.questions) {
-      if (q.required && !hasAnswer(q.type, answers[q.id])) {
-        setErrorMsg(`Por favor responde la pregunta: "${q.question}"`);
-        setErrorQid(q.id);
-        const el = questionRefs.current[q.id];
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return;
+      if (!q.required || hasAnswer(q, answers[q.id])) continue;
+      setErrorMsg(
+        q.type === 'grid'
+          ? `Faltan renglones por responder en: "${q.question}"`
+          : `Por favor responde la pregunta: "${q.question}"`
+      );
+      setErrorQid(q.id);
+      if (q.type === 'grid') {
+        const obj = answers[q.id] || {};
+        setErrorRows(new Set(q.rows.filter(r => obj[r.id] === undefined || obj[r.id] === null).map(r => r.id)));
+      } else {
+        setErrorRows(null);
       }
+      const el = questionRefs.current[q.id];
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
     }
     setErrorMsg('');
     setErrorQid(null);
+    setErrorRows(null);
     setSaving(true);
     try {
-      await onSave(evalId, answers);
+      await onSave(evalId, answers, clave);
       setToast('✓ Evaluación guardada. ¡Gracias por tu tiempo!');
       setTimeout(() => {
         setToast('');
@@ -266,7 +421,6 @@ export function EvalForm({ evalId, userData, onSave, onBack }) {
 
   return (
     <div style={{ position: 'relative' }}>
-      {/* Toast */}
       {toast && (
         <div role="alert" style={{
           position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
@@ -275,7 +429,7 @@ export function EvalForm({ evalId, userData, onSave, onBack }) {
         }}>{toast}</div>
       )}
 
-      {/* Header */}
+      {/* Encabezado */}
       <div style={{
         background: 'white', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
         padding: '16px 20px', marginBottom: '16px',
@@ -292,17 +446,41 @@ export function EvalForm({ evalId, userData, onSave, onBack }) {
           <div>
             <h2 style={{ margin: 0, fontSize: '1.1rem', color: '#111827' }}>{ev.title}</h2>
             <p style={{ margin: '2px 0 4px', color: '#6B7280', fontSize: '0.82rem' }}>
-              {cat.label} · {ev.questions.length} preguntas · ~{ev.estimatedMinutes} min
+              {ev.codigo} · {cat.label} · {total} respuestas · ~{ev.estimatedMinutes} min
             </p>
-            <p style={{ margin: 0, color: '#374151', fontSize: '0.85rem' }}>{ev.description}</p>
+            <p style={{ margin: 0, color: '#374151', fontSize: '0.85rem' }}>{ev.intro || ev.description}</p>
           </div>
         </div>
+
+        {/* Clave de seguimiento asignada por la plataforma */}
+        <div style={{
+          marginTop: '12px', padding: '10px 14px', borderRadius: '8px',
+          background: clave ? '#F3F4F6' : '#FEF9C3',
+          border: `1px solid ${clave ? '#E5E7EB' : '#FDE68A'}`,
+          display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
+        }}>
+          <span style={{ fontSize: '0.78rem', color: '#6B7280', fontWeight: 600 }}>
+            Clave de seguimiento
+          </span>
+          {clave ? (
+            <code style={{
+              fontSize: '0.92rem', fontWeight: 700, color: '#111827',
+              letterSpacing: '0.04em', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+            }}>{clave}</code>
+          ) : (
+            <span style={{ fontSize: '0.82rem', color: '#854D0E' }}>{falta}</span>
+          )}
+          {clave && falta && (
+            <span style={{ fontSize: '0.78rem', color: '#854D0E' }}>{falta}</span>
+          )}
+        </div>
+
         {existing?.completedAt && (
           <div style={{
             marginTop: '12px', padding: '10px 14px', borderRadius: '8px',
             background: '#EFF6FF', border: '1px solid #BFDBFE', fontSize: '0.83rem', color: '#1E40AF',
           }}>
-            Ya respondiste esta evaluación el {formatDate(existing.completedAt)}. Puedes actualizar tus respuestas si lo deseas.
+            Ya se respondió esta evaluación el {formatDate(existing.completedAt)}. Puedes actualizar las respuestas si lo deseas.
           </div>
         )}
       </div>
@@ -316,14 +494,16 @@ export function EvalForm({ evalId, userData, onSave, onBack }) {
         </div>
       )}
 
-      {/* Questions */}
       {ev.questions.map((q, idx) => (
         <div key={q.id} ref={el => { questionRefs.current[q.id] = el; }}>
-          <QuestionCard q={q} idx={idx} answers={answers} onChange={setAnswer} errorId={errorQid} />
+          <QuestionCard
+            q={q} idx={idx} answers={answers} onChange={setAnswer}
+            errorId={errorQid} errorRows={errorRows}
+          />
         </div>
       ))}
 
-      {/* Footer */}
+      {/* Pie */}
       <div style={{
         position: 'sticky', bottom: 0,
         background: 'white', borderTop: '1px solid #E5E7EB',
@@ -333,7 +513,7 @@ export function EvalForm({ evalId, userData, onSave, onBack }) {
         boxShadow: '0 -2px 8px rgba(0,0,0,0.06)', borderRadius: '0 0 10px 10px',
       }}>
         <span style={{ fontSize: '0.83rem', color: '#6B7280' }}>
-          {answered} de {ev.questions.length} preguntas respondidas
+          {answered} de {total} respuestas
         </span>
         <div style={{ display: 'flex', gap: '8px' }}>
           <Button variant="ghost" onClick={onBack} disabled={saving}>Cancelar</Button>

@@ -10,7 +10,7 @@ import { UserEventsList } from './UserEventsList';
 import { Spinner } from './ui/Spinner';
 import { Alert } from './ui/Alert';
 import { Button } from './ui/Button';
-import { evaluacionesParaUsuario } from '../evaluaciones';
+import { todasLasEvaluaciones } from '../evaluaciones';
 
 const BRAND_COLOR = '#1A56A4';
 
@@ -23,7 +23,7 @@ export function AdminEditUser() {
   const [activeTab, setActiveTab] = useState('personal');
 
   const eventCount = userData ? (userData.eventos || []).length : 0;
-  const evalCount = userData ? evaluacionesParaUsuario(userData).length : 0;
+  const evalCount = userData ? todasLasEvaluaciones(userData).length : 0;
   const TABS = [
     { id: 'personal', label: 'Datos personales' },
     { id: 'programa', label: 'Programa' },
@@ -108,7 +108,10 @@ export function AdminEditUser() {
               <DocumentosTab data={userData} onSave={handleSave} />
             )}
             {activeTab === 'evaluaciones' && (
-              <AdminUserEvals userData={userData} />
+              <AdminUserEvals
+                userData={userData}
+                onUpdated={evaluaciones => setUserData(prev => ({ ...prev, evaluaciones }))}
+              />
             )}
             {activeTab === 'eventos' && (
               <UserEventsList
