@@ -723,7 +723,8 @@ export const EVALUACIONES = [
     description: 'Tu opinión sobre el último evento de alto impacto al que asististe.',
     category: 'evento',
     nivel: 'universitarios',
-    applies: { nivel: 'universitarios', tipo: ['Beneficiario'] },
+    // VEM no tiene instrumentos propios: de las de nivel sólo responde ésta.
+    applies: { nivel: 'universitarios', programasExtra: ['VEM'], tipo: ['Beneficiario'] },
     estimatedMinutes: 7,
     intro: 'Tu opinión decide cómo será el próximo evento. Responde en 7 minutos.',
     questions: [
@@ -1077,8 +1078,11 @@ function aplica(ev, user, { incluirCoordinador = false } = {}) {
   if (a.audiencia === 'coordinador' && !incluirCoordinador) return false;
   const tipo = user.tipoParticipante || user.tipo || 'Beneficiario';
   if (a.tipo?.length && !a.tipo.includes(tipo)) return false;
-  if (a.nivel && nivelDePrograma(user.programa) !== a.nivel) return false;
-  if (a.programa?.length && !a.programa.includes((user.programa || '').trim())) return false;
+  const programa = (user.programa || '').trim();
+  if (a.nivel
+      && nivelDePrograma(programa) !== a.nivel
+      && !(a.programasExtra || []).includes(programa)) return false;
+  if (a.programa?.length && !a.programa.includes(programa)) return false;
   return true;
 }
 
