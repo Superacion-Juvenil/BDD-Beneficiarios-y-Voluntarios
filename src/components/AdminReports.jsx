@@ -10,6 +10,7 @@ import {
   reporteSinRoble,
   reportePorTipo,
   reporteEstadisticas,
+  reporteEvaluaciones,
 } from '../lib/reports';
 
 const BRAND = '#1A56A4';
@@ -78,6 +79,10 @@ export function AdminReports() {
   const sinRoble = users.filter(u => !u.docCapacitacionPASI).length;
   const docsPendientes = users.filter(u => !u.docTerminos || !u.docCartaResponsiva || !u.docCapacitacionPASI).length;
   const beneficiarios = users.filter(u => u.tipoParticipante === 'Beneficiario').length;
+  const conEvaluaciones = users.filter(u => {
+    const e = u.evaluaciones;
+    return e && typeof e === 'object' && Object.values(e).some(r => r?.completedAt);
+  }).length;
   const voluntarios = users.filter(u => u.tipoParticipante === 'Voluntario').length;
 
   return (
@@ -113,6 +118,15 @@ export function AdminReports() {
             actionLabel="Descargar Excel"
             color="#0891B2"
             action={() => reporteEstadisticas(users)}
+          />
+          <ReportCard
+            icon="📈"
+            title="Evaluaciones y avance"
+            description="Avance de cada participante en su paso por SJ y estadísticas por área de habilidad, con interpretación de resultados."
+            count={conEvaluaciones}
+            color="#6D28D9"
+            actionLabel="Descargar Excel"
+            action={() => reporteEvaluaciones(users)}
           />
           <ReportCard
             icon="🧒"
