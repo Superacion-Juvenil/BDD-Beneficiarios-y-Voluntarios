@@ -605,7 +605,7 @@ export const EVALUACIONES = [
       },
       {
         id: 'valio-la-pena', type: 'single', required: true,
-        question: 'Al entrar dijiste qué haría que este ciclo "valiera la pena". ¿Se cumplió?',
+        question: 'Al reflexionar en este ciclo, ¿dirías que valió la pena participar del Programa?',
         options: ['Sí', 'En parte', 'No'],
       },
       {
