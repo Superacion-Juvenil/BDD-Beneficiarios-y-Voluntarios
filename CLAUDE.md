@@ -45,6 +45,9 @@ src/
     ├── curp.js            # parser CURP + cálculo de edad
     ├── internalEmail.js   # dominio del correo interno derivado del CURP
     ├── claveSeguimiento.js # clave de seguimiento = 4 chars del CURP + programa
+    ├── evalStats.js       # análisis de avance por área (puro, sin Supabase ni Excel)
+    ├── reports.js         # generación de los Excel descargables
+    ├── migrations.js      # migraciones de datos, versionadas en localStorage
     └── validators.js      # validaciones de inputs
 scripts/migrate.js         # importación masiva desde Excel
 supabase/schema.sql        # tabla profiles + RLS + trigger
@@ -68,7 +71,8 @@ supabase/schema.sql        # tabla profiles + RLS + trigger
 - `xlsx` tiene CVE conocido sin fix upstream (prototype pollution / ReDoS); se usa solo en el script de migración del lado servidor, no en el frontend.
 - Las evaluaciones viven en `src/evaluaciones.js`. Cada una declara `applies`: `nivel` (secundaria / prepa / universitarios, derivado del programa vía `NIVELES`), `tipo` (Beneficiario / Voluntario) y, para la E4B, `audiencia: 'coordinador'` —esa la llena el admin desde la ficha del usuario, no el participante—. `programasExtra` suma programas que no caen en el nivel: VEM lo usa para recibir sólo la evaluación de evento de universitarios, ya que no tiene instrumentos propios. Las preguntas tipo `grid` comparten ids de renglón (`f1`…`f12`) entre la evaluación de ingreso y la de cierre del mismo nivel para poder comparar antes/después; **no cambiar esos ids**.
 - La clave de seguimiento la asigna la plataforma (`src/lib/claveSeguimiento.js`): 4 primeros caracteres del CURP + `-` + programa. Se congela dentro de cada respuesta (`evaluaciones[evalId].clave`) para que siga siendo válida aunque la persona cambie de programa.
-- Las respuestas guardadas bajo ids de evaluaciones que ya no están en el catálogo no se borran: aparecen como "Histórico" en la ficha del usuario.
+- Las respuestas guardadas bajo ids de evaluaciones que ya no están en el catálogo aparecen como "Histórico" en la ficha del usuario. Las 6 evaluaciones anteriores a noviembre de 2026 se eliminan con la migración v3 de `migrations.js`.
+- El avance se mide sobre el bloque de habilidades: las 12 áreas de `AREAS_HABILIDADES` se derivan de la **posición** del renglón (`f3` y `s3` → la 3ª área), así que agregar o reordenar renglones de ese bloque cambia la medición. `evalStats.js` documenta los cortes de dominio y de cambio, y marca como muestra insuficiente cualquier corte con menos de `N_MINIMO` casos: son datos autoinformados sin prueba estadística, y el reporte lo dice explícitamente.
 - El esquema SQL define un trigger `trg_enforce_profile_safe_update` que impide que un usuario no-admin modifique campos sensibles aunque la RLS le permita actualizar su fila: identidad (`id`, `curp`, `fechaNacimiento`, `sexo`, `createdAt`) y `status`. El participante **sí** elige su `tipoParticipante`, `programa` y `distrito`. Si se cambia esa lista, actualizar también `PROTECTED_FIELDS` en `ProgramaTab.jsx`.
 
 ## Documentación

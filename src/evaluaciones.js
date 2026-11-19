@@ -55,6 +55,39 @@ export const ESCALAS = {
   },
 };
 
+/**
+ * Las 12 áreas del marco de habilidades de SJ.
+ *
+ * Los bloques "Así soy hoy" (E1/E2, renglones f1…f12) y "Mis habilidades de
+ * servicio hoy" (E4A, renglones s1…s12) miden estas mismas áreas, en el mismo
+ * orden, con la redacción adaptada a cada nivel. De ahí sale la comparación de
+ * avance por área entre el ingreso y el cierre del ciclo.
+ *
+ * El orden importa: la posición del renglón determina el área. Si se agrega o
+ * reordena un renglón hay que actualizar esta lista.
+ */
+export const AREAS_HABILIDADES = [
+  'Comunicación',
+  'Iniciativa',
+  'Organización y responsabilidad',
+  'Empatía',
+  'Trabajo en equipo',
+  'Apertura a la retroalimentación',
+  'Manejo de emociones',
+  'Resolución de conflictos',
+  'Resiliencia',
+  'Servicio',
+  'Valores y fe',
+  'Proyecto de vida',
+];
+
+/** Área que mide un renglón (`f3` → 'Organización y responsabilidad'). */
+export function areaDeRenglon(rowId) {
+  const m = /^[fs](\d{1,2})$/.exec(rowId || '');
+  if (!m) return null;
+  return AREAS_HABILIDADES[Number(m[1]) - 1] || null;
+}
+
 /* ── Bloques de habilidades compartidos entre E1 (ingreso) y E2 (cierre) ── */
 
 const HABILIDADES_SECUNDARIA = [
