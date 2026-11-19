@@ -353,14 +353,18 @@ function QuestionCard({ q, idx, answers, onChange, errorId, errorRows }) {
  * `sujeto` es la persona a la que se refiere la evaluación (de ahí sale la
  * clave de seguimiento). Normalmente es el mismo `userData`; en la evaluación
  * del coordinador es el servidor evaluado.
+ *
+ * Con `preview` el formulario sale en blanco y no guarda nada: es la vista
+ * previa que usa el administrador para revisar un cuestionario. En ese modo
+ * `userData` puede omitirse.
  */
-export function EvalForm({ evalId, userData, sujeto, onSave, onBack }) {
+export function EvalForm({ evalId, userData, sujeto, onSave, onBack, preview = false }) {
   const ev = EVALUACIONES.find(e => e.id === evalId);
   const cat = ev ? (CATEGORIAS[ev.category] || {}) : {};
-  const persona = sujeto || userData;
-  const existing = (userData.evaluaciones || {})[evalId];
-  const clave = claveSeguimiento(persona);
-  const falta = faltaParaClave(persona);
+  const persona = sujeto || userData || {};
+  const existing = preview ? null : (userData?.evaluaciones || {})[evalId];
+  const clave = preview ? '' : claveSeguimiento(persona);
+  const falta = preview ? '' : faltaParaClave(persona);
 
   const [answers, setAnswers] = useState(existing?.answers || {});
   const [saving, setSaving] = useState(false);
@@ -429,6 +433,18 @@ export function EvalForm({ evalId, userData, sujeto, onSave, onBack }) {
         }}>{toast}</div>
       )}
 
+      {preview && (
+        <div style={{
+          background: '#FEF9C3', border: '1px solid #FDE68A', borderRadius: '10px',
+          padding: '10px 16px', marginBottom: '12px',
+          display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
+          fontSize: '0.84rem', color: '#854D0E',
+        }}>
+          <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>👁</span>
+          <span><strong>Vista previa.</strong> Así ve el participante este cuestionario. Nada de lo que marques aquí se guarda.</span>
+        </div>
+      )}
+
       {/* Encabezado */}
       <div style={{
         background: 'white', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
@@ -455,14 +471,19 @@ export function EvalForm({ evalId, userData, sujeto, onSave, onBack }) {
         {/* Clave de seguimiento asignada por la plataforma */}
         <div style={{
           marginTop: '12px', padding: '10px 14px', borderRadius: '8px',
-          background: clave ? '#F3F4F6' : '#FEF9C3',
-          border: `1px solid ${clave ? '#E5E7EB' : '#FDE68A'}`,
+          background: (preview || clave) ? '#F3F4F6' : '#FEF9C3',
+          border: `1px solid ${(preview || clave) ? '#E5E7EB' : '#FDE68A'}`,
           display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
         }}>
           <span style={{ fontSize: '0.78rem', color: '#6B7280', fontWeight: 600 }}>
             Clave de seguimiento
           </span>
-          {clave ? (
+          {preview ? (
+            <span style={{ fontSize: '0.82rem', color: '#6B7280' }}>
+              La asigna la plataforma al responder (4 primeros caracteres del CURP + programa,
+              por ejemplo <code style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>HEPJ-MJ Prepa</code>).
+            </span>
+          ) : clave ? (
             <code style={{
               fontSize: '0.92rem', fontWeight: 700, color: '#111827',
               letterSpacing: '0.04em', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
@@ -513,13 +534,21 @@ export function EvalForm({ evalId, userData, sujeto, onSave, onBack }) {
         boxShadow: '0 -2px 8px rgba(0,0,0,0.06)', borderRadius: '0 0 10px 10px',
       }}>
         <span style={{ fontSize: '0.83rem', color: '#6B7280' }}>
-          {answered} de {total} respuestas
+          {preview
+            ? 'Vista previa · nada de lo que marques se guarda'
+            : `${answered} de ${total} respuestas`}
         </span>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <Button variant="ghost" onClick={onBack} disabled={saving}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? 'Guardando…' : 'Guardar evaluación'}
-          </Button>
+          {preview ? (
+            <Button onClick={onBack}>Cerrar vista previa</Button>
+          ) : (
+            <>
+              <Button variant="ghost" onClick={onBack} disabled={saving}>Cancelar</Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? 'Guardando…' : 'Guardar evaluación'}
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>

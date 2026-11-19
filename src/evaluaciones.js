@@ -521,15 +521,6 @@ export const EVALUACIONES = [
         id: 'ejemplo', type: 'longtext', required: false,
         question: 'Cuéntanos una vez este año en que hiciste algo diferente gracias a lo que aprendiste aquí (en casa, en la escuela o con amigos).',
       },
-      {
-        id: 'continuidad', type: 'single', required: true,
-        question: '¿Te gustaría seguir el próximo ciclo o pasar a MJ Prepa?',
-        options: ['Sí, seguro', 'Probablemente', 'No sé', 'No'],
-      },
-      {
-        id: 'continuidad-porque', type: 'longtext', required: false,
-        question: '¿Por qué?',
-      },
     ],
   },
   {
@@ -1051,7 +1042,6 @@ export const EVALUACIONES = [
       },
       { id: 'influencia-vocacional', type: 'single', required: true, question: '¿Qué tanto influyó el programa en tu decisión vocacional?', options: ['Mucho', 'Algo', 'Nada'] },
       { id: 'preparado-universidad', type: 'scale', required: true, escala: 'intensidad5', question: '¿Qué tan preparado/a te sientes para la vida universitaria o laboral?' },
-      { id: 'continuar-mcu', type: 'single', required: true, question: '¿Te gustaría continuar en MCU o Sector Universitario?', options: ['Sí', 'Tal vez', 'No'] },
       { id: 'que-te-llevas', type: 'longtext', required: false, question: '¿Qué te llevas de MJ Prepa y cómo lo aplicarás en tu siguiente etapa?' },
     ],
   },
