@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { parseCURP, calcAge, isMinor, formatFechaNac } from '../lib/curp';
 import { validateEmail, validatePhone, validateCP } from '../lib/validators';
 import { Field, Input } from './ui/Field';
+import { MunicipioField } from './MunicipioField';
 import { SectionTitle } from './ui/SectionTitle';
 import { Badge } from './ui/Badge';
 import { Alert } from './ui/Alert';
@@ -140,9 +141,7 @@ export function ProfileTab({ data, onSave, isAdmin, readOnlyCURP = true }) {
         <Field label="C.P." error={errors.cp}>
           <Input value={form.cp || ''} onChange={e => set('cp', e.target.value)} maxLength={5} error={errors.cp} />
         </Field>
-        <Field label="Municipio">
-          <Input value={form.municipio || ''} onChange={e => set('municipio', e.target.value)} />
-        </Field>
+        <MunicipioField value={form.municipio} onChange={v => set('municipio', v)} />
       </div>
 
       {/* Sección padres/tutores — solo menores de edad */}

@@ -6,6 +6,7 @@ import { parseCURP, validateCURP, calcAge, isMinor, formatFechaNac } from '../li
 import { validateEmail, validatePhone, validateCP } from '../lib/validators';
 import { AdminLayout } from './AdminLayout';
 import { Field, Input, Select, Textarea } from './ui/Field';
+import { MunicipioField } from './MunicipioField';
 import { SectionTitle } from './ui/SectionTitle';
 import { Alert } from './ui/Alert';
 import { Button } from './ui/Button';
@@ -253,9 +254,7 @@ export function AdminAddUser() {
             <Field label="C.P." error={errors.cp}>
               <Input value={form.cp} onChange={e => set('cp', e.target.value)} maxLength={5} error={errors.cp} />
             </Field>
-            <Field label="Municipio">
-              <Input value={form.municipio} onChange={e => set('municipio', e.target.value)} />
-            </Field>
+            <MunicipioField value={form.municipio} onChange={v => set('municipio', v)} />
           </div>
 
           {minor && (
