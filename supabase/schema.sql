@@ -51,7 +51,12 @@ create table if not exists public.profiles (
   "correoMadre" text,
   "alergias" text,
   "tallaPlayera" text,
-  "seguroMedico" text
+  "seguroMedico" text,
+  -- Historial de eventos a los que asistió el participante.
+  "eventos" jsonb not null default '[]'::jsonb,
+  -- Respuestas de las evaluaciones, indexadas por id de evaluación:
+  --   { "e1-prepa": { "completedAt": ..., "clave": ..., "answers": { ... } } }
+  "evaluaciones" jsonb
 );
 
 create index if not exists profiles_apellido_paterno_idx on public.profiles ("apellidoPaterno");
