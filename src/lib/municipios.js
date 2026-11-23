@@ -16,6 +16,7 @@ export const MUNICIPIOS = [
   'Santa Catarina',
   'García',
   'Juárez',
+  'Santiago',
 ];
 
 /** Valor del select cuando el municipio no está en el catálogo. */
