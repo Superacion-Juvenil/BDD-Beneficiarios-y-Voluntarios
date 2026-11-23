@@ -477,10 +477,6 @@ export const EVALUACIONES = [
         help: 'Lee cada frase y marca qué tan seguido la vives HOY, no cómo te gustaría ser.',
         rows: HABILIDADES_UNIVERSITARIOS,
       },
-      {
-        id: 'valio-la-pena', type: 'longtext', required: true,
-        question: '¿Qué tendría que pasar en este ciclo para que digas "valió la pena"?',
-      },
     ],
   },
 
@@ -605,7 +601,7 @@ export const EVALUACIONES = [
       },
       {
         id: 'valio-la-pena', type: 'single', required: true,
-        question: 'Al entrar dijiste qué haría que este ciclo "valiera la pena". ¿Se cumplió?',
+        question: 'Al reflexionar en este ciclo, ¿dirías que valió la pena participar del Programa?',
         options: ['Sí', 'En parte', 'No'],
       },
       {
