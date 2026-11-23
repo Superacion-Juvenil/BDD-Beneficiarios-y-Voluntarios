@@ -108,13 +108,27 @@ function DocCard({ id, title, description, checked, onChange, extra, aside }) {
   );
 }
 
+const ANIO_MINIMO = 2000;
+
+/**
+ * Año de la capacitación a partir de lo guardado. Antes se pedía la fecha
+ * completa, así que un expediente viejo trae "2024-03-15": de ahí se toma
+ * el año y el participante ya sólo ve y edita eso.
+ */
+function anioDeCapacitacion(valor) {
+  const m = /\d{4}/.exec(String(valor || ''));
+  return m ? m[0] : '';
+}
+
 export function DocumentosTab({ data, onSave }) {
   const [form, setForm] = useState({
     docTerminos: data.docTerminos || false,
     docCartaResponsiva: data.docCartaResponsiva || false,
     docCapacitacionPASI: data.docCapacitacionPASI || false,
-    docFechaPASI: data.docFechaPASI || '',
     ...data,
+    // Después del spread: `data` trae la fecha completa de los expedientes
+    // viejos y volvería a pisar el año ya normalizado.
+    docFechaPASI: anioDeCapacitacion(data.docFechaPASI),
   });
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
@@ -126,8 +140,8 @@ export function DocumentosTab({ data, onSave }) {
         docTerminos: data.docTerminos || false,
         docCartaResponsiva: data.docCartaResponsiva || false,
         docCapacitacionPASI: data.docCapacitacionPASI || false,
-        docFechaPASI: data.docFechaPASI || '',
         ...data,
+        docFechaPASI: anioDeCapacitacion(data.docFechaPASI),
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -142,9 +156,17 @@ export function DocumentosTab({ data, onSave }) {
   async function handleSave(e) {
     e.preventDefault();
     setError('');
-    if (form.docCapacitacionPASI && !form.docFechaPASI) {
-      setError('Ingresa la fecha en que tomaste la capacitación de Fundación Roble.');
-      return;
+    if (form.docCapacitacionPASI) {
+      const anio = Number(form.docFechaPASI);
+      const anioActual = new Date().getFullYear();
+      if (!form.docFechaPASI) {
+        setError('Ingresa el año en que tomaste la capacitación de Fundación Roble.');
+        return;
+      }
+      if (!Number.isInteger(anio) || anio < ANIO_MINIMO || anio > anioActual) {
+        setError(`El año debe estar entre ${ANIO_MINIMO} y ${anioActual}.`);
+        return;
+      }
     }
     setSaving(true);
     try {
@@ -233,11 +255,15 @@ export function DocumentosTab({ data, onSave }) {
 
           {form.docCapacitacionPASI && (
             <div style={{ marginTop: '12px' }}>
-              <Field label="Fecha en que la tomé" required>
+              <Field label="Año en que la tomé" required>
                 <Input
-                  type="date"
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="Ej. 2026"
+                  step={1}
                   value={form.docFechaPASI || ''}
-                  onChange={e => set('docFechaPASI', e.target.value)}
+                  onChange={e => set('docFechaPASI', e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  style={{ maxWidth: '160px' }}
                 />
               </Field>
             </div>
